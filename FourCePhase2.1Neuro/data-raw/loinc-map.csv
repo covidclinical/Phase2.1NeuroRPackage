@@ -1,0 +1,19 @@
+Name,short_name,LOINC,Units ,Reference Low,Reference High
+alanine aminotransferase (ALT),ALT,1742-6,U/L,0,40
+albumin,Albumin,1751-7,g/dL,3.5,5.2
+aspartate aminotransferase (AST),AST,1920-8,U/L,0,40
+cardiac troponin (High Sensitivity),Troponin_normal,49563-0,ng/mL,0,0.01
+cardiac troponin (Normal Sensitivity),Troponin_high,6598-7,ug/L,0,0.01
+C-reactive protein (CRP) (Normal Sensitivity),CRP,1988-5,mg/L,0,5
+creatinine,Creatinine,2160-0,mg/dL,0.4,1.1
+D-dimer (DDU),DDU,48066-5,ng/mL{DDU},0,250
+D-dimer (FEU),FEU,48065-7,ng/mL{FEU},0,500
+Ferritin,Ferritin,2276-4,ng/mL,13,400
+Fibrinogen,Fibrinogen,3255-7,mg/dL,180,400
+lactate dehydrogenase (LDH),LDH,2532-0,U/L,94,250
+lymphocyte count,Lymphocyte,731-0,10*3/uL,1.2,3.7
+neutrophil count,Neutrophil,751-8,10*3/uL,1.6,6.1
+procalcitonin,Procalcitonin,33959-8,ng/mL,0,0.15
+prothrombin time (PT),PT,5902-2,s,9.4,12.5
+total bilirubin,Bilirubin,1975-2,mg/dL,0,1.5
+white blood cell count (Leukocytes),Leukocytes,6690-2,10*3/uL,4,10

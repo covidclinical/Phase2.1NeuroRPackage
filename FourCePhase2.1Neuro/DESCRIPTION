@@ -1,13 +1,31 @@
-Package: FourCePhase2.1Neuro
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
-Authors@R: 
-    person(given = "First",
-           family = "Last",
-           role = c("aut", "cre"),
-           email = "first.last@example.com",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: What license it uses
+Package: Phase2.1NeuroRPackage
+Type: Package
+Title: Analysis of COVID-19 patients with Neurological Conditions
+Version: 0.1.0
+Authors@R: c(
+    person("Trang", "Le", email = "grixor@gmail.com", role = c("aut", "cre"), comment = "https://trang.page/"),
+    person("Meghan", "Hutch", email = "MeghanHutch2024@u.northwestern.edu", role = "aut", comment = "https://github.com/meghutch"))
+Maintainer: Trang Le <grixor@gmail.com>
+Description: Run analysis at each site to answer this question:
+  Does a patient have worse COVID-19 short-term outcomes 
+  if they develop a neurological condition during hospitalization?
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
+Imports:
+  tidyr,
+  readr,
+  forcats,
+  tibble,
+  dplyr,
+  rcartocolor,
+  purrr,
+  devtools,
+  FourCePhase2.1Data,
+  FourCePhase2.1Utilities
+Suggests:
+  icd
+Remotes: jackwasey/icd@e54bb24
+Depends: 
+    R (>= 2.10)
+RoxygenNote: 7.1.1

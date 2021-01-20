@@ -1,12 +1,9 @@
 #' Run analysis
 #'
-#' @param currSiteId Your site acronym
 #' @param mask_thres Obfuscation small count mask threshold (e.g. 10)
 #' @param blur_abs Absolute max of obfuscation blurring range
 #' @param include_race Boolean. Whether race should be included
 #' in the regression model.
-#' @param getProjectOutputDirectory() Optional. Directory where resulting outputs are located.
-#' Defaults to 'output'.
 #' @param data_dir Optional. Directory where datasets are located.
 #' Defaults to 'Input'.
 #'
