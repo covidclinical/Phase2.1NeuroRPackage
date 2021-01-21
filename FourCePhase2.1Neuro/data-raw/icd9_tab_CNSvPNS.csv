@@ -1,0 +1,30 @@
+Neurological Disease Category,icd,icd9_desc,"Nervous system Involvement (1=central, 2=peripheral)"
+Muscle,040,Other bacterial diseases,2
+Psychiatric,298,Other nonorganic psychoses,1
+Headache,307,"Special symptoms or syndromes, not elsewhere classified",1
+Inflammatory,320,Bacterial meningitis,1
+Inflammatory,321,Meningitis due to other organisms,1
+Inflammatory,322,Meningitis of unspecified cause,1
+Inflammatory,323,"Encephalitis, myelitis, and encephalomyelitis",1
+Other,330,Cerebral degenerations usually manifest in childhood,1
+Other,331,Other cerebral degenerations,1
+Headache,339,Other headache syndromes,1
+Seizure,345,Epilepsy and recurrent seizures,1
+Other,348,Other conditions of brain,1
+Neuropathy,357,Inflammatory and toxic neuropathy,2
+Muscle,359,Muscular dystrophies and other myopathies,2
+Vision,369,Blindness and low vision,1
+Vascular,430,Subarachnoid hemorrhage,1
+Vascular,431,Intracerebral hemorrhage,1
+Vascular,432,Other and unspecified intracranial hemorrhage,1
+Vascular,435,Transient cerebral ischemia,1
+Vascular,436,"Acute, but ill-defined cerebrovascular disease",1
+Vascular,437,Other and ill-defined cerebrovascular disease,1
+Muscle,728,"Disorders of muscle, ligament, and fascia",2
+Muscle,729,Other disorders of soft tissues,2
+Other,780,General symptoms,1
+Neuropathy,781,Symptoms involving nervous and musculoskeletal systems,2
+Headache,784,Symptoms involving head and neck,1
+Consciousness,797,Senility without mention of psychosis,1
+Consciousness,799,Other ill-defined and unknown causes of morbidity and mortality,1
+Vision/smell/taste,V41,Problems with special senses and other special functions,2

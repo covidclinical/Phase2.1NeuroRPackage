@@ -15,7 +15,7 @@ remotes::install_github('covidclinical/Phase2.1NeuroRPackage',
 
 ## How to run
 
-The main function `runAnalysis()` has 6 arguments. Please read the
+The main function `runAnalysis()` has 3 required arguments. Please read the
 documentation with `?runAnalysis` for a detailed explanation.
 
 ``` r

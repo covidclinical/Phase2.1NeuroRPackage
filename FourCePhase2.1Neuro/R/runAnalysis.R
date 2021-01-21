@@ -23,7 +23,7 @@ runAnalysis <-
            data_dir = 'Input') {
 
     ## make sure this instance has the latest version of the quality control and data wrangling code available
-    devtools::install_github("covidclinical/Phase2.1DataRPackage", subdir="FourCePhase2.1Data", upgrade=FALSE)
+    # remotes::install_github("covidclinical/Phase2.1DataRPackage@77d32fe", subdir="FourCePhase2.1Data", upgrade=FALSE)
 
     ## get the site identifier assocaited with the files stored in the /4ceData/Input directory that
     ## is mounted to the container

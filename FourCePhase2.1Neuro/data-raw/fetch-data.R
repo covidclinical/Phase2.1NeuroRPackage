@@ -7,4 +7,12 @@ neuro_icds_10 <-
   mutate(pns_cns = as.factor(pns_cns) %>% fct_recode(Central = '1',
                                                      Peripheral = '2'))
 
-usethis::use_data(loinc, neuro_icds_10, overwrite = TRUE)
+neuro_icds_9 <- read.csv('data-raw/icd9_tab_CNSvPNS.csv') %>%
+  rename('Neurological Disease Category' = 'Neurological.Disease.Category',
+         'pns_cns' = `Nervous.system.Involvement..1.central..2.peripheral.`,
+         'icd_description' = `icd9_desc`) %>%
+  mutate(pns_cns = as.factor(pns_cns) %>% fct_recode(Central = '1',
+                                                     Peripheral = '2'),
+         concept_type = "DIAG-ICD9")
+
+usethis::use_data(neuro_icds_9, neuro_icds_10, overwrite = TRUE)
