@@ -1,3 +1,57 @@
+first_3 <- function(x) {
+  # retains first 3 characters of the ICD code
+  substr(x, 1, 3) %>% unique()
+}
+
+right_join0 <- function(x, y, fill = 0L, ...){
+  z <- right_join(x, y, ...)
+  tmp <- setdiff(names(z), names(y))
+  tidyr::replace_na(z, setNames(as.list(rep(fill, length(tmp))), tmp))
+}
+
+
+run_regressions <- function(df, include_race = TRUE) {
+  severe_reg_elix <-
+    run_regression(df, 'severe', TRUE, include_race)
+
+  deceased_reg_elix <-
+    run_regression(df, 'deceased', TRUE, include_race)
+
+  n_stay_reg_elix <-
+    run_regression(df, 'n_stay', FALSE, include_race)
+
+  n_readmit_reg_elix <-
+    run_regression(df, 'n_readmissions', FALSE, include_race)
+
+  readmit_reg_elix <-
+    run_regression(df, 'readmitted', TRUE, include_race)
+
+  list(
+    n_stay_reg_elix = n_stay_reg_elix,
+    severe_reg_elix = severe_reg_elix,
+    deceased_reg_elix = deceased_reg_elix,
+    n_readmit_reg_elix = n_readmit_reg_elix,
+    readmit_reg_elix = readmit_reg_elix
+  )
+}
+
+run_regression <-
+  function(df, depend_var, binary = TRUE, include_race = TRUE) {
+    independ_vars <- '~ neuro_post + elixhauser_score + sex + age_group'
+    if (include_race)
+      independ_vars <- paste(independ_vars, '+ race')
+
+    if (binary) {
+      # is dependent variable binary?
+      glm(as.formula(paste(depend_var, independ_vars)),
+          family = 'binomial', data = df) %>%
+        summary()
+    } else {
+      lm(as.formula(paste(depend_var, independ_vars)), data = df) %>%
+        summary()
+    }
+  }
+
 # library(epitools)
 #
 # my_riskratio <- function (x, conf.level = 0.95,

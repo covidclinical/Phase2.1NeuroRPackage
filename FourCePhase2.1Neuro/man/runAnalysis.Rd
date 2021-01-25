@@ -4,12 +4,20 @@
 \alias{runAnalysis}
 \title{Run analysis}
 \usage{
-runAnalysis(mask_thres, blur_abs, include_race = TRUE, data_dir = "Input")
+runAnalysis(
+  mask_thres,
+  blur_abs,
+  icd_version = 10,
+  include_race = TRUE,
+  data_dir = "Input"
+)
 }
 \arguments{
 \item{mask_thres}{Obfuscation small count mask threshold (e.g. 10)}
 
 \item{blur_abs}{Absolute max of obfuscation blurring range}
+
+\item{icd_version}{Version of ICD code the site uses. Must be EITHER 9 or 10.}
 
 \item{include_race}{Boolean. Whether race should be included
 in the regression model.}
