@@ -176,9 +176,10 @@ get_table1 <- function(
     right_join(comorbidities, ., by = "Abbreviation")
 }
 
-list_table1 <- function(x, df, num_pats, comorb_names, ...){
+list_table1 <- function(x, df, num_pats, comorb_names, group_var, ...){
+  group_var <- sym(group_var)
   get_table1(
-    df %>% filter(neuro_post == x),
+    df %>% filter(!!group_var == x),
     num_pats,
     comorbidities = comorb_names,
     pat_col = x, ...)

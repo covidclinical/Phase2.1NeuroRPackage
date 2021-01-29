@@ -10,152 +10,76 @@ concat_mean <- function(mea, s, acc = 0){
   paste0(round(mea, acc), ' (', round(s, acc), ')')
 }
 
-severity_stats <- function(df, ...) {
-  # summary statistics for severity status
+count_stats <- function(df, count_var, neg_var, group_var, ...) {
+  # summary statistics for survival/severity status
   # count values are obfuscated
 
+  count_var <- sym(count_var)
+  neg_var <- sym(neg_var)
+  Count_var <- sym(stringr::str_to_title(count_var))
+  group_var <- sym(group_var)
+
   df %>%
-    select(neuro_post, time_severe = time_to_severe) %>%
-    group_by(neuro_post) %>%
-    summarise(median_time = median(time_severe, na.rm = TRUE),
-              min_time = min(time_severe, na.rm = TRUE),
-              max_time = max(time_severe, na.rm = TRUE),
-              mean_time = mean(time_severe, na.rm = TRUE),
-              sd_time = sd(time_severe, na.rm = TRUE),
-              non_severe = sum(is.na(time_severe)),
+    select(group_var, count_var) %>%
+    group_by(!!group_var) %>%
+    summarise(!!neg_var := sum(!!count_var == 0),
               Total = n(),
               .groups = 'drop') %>%
-    blur_it(c('non_severe', 'Total'), ...) %>%
-    mutate(severe = Total - non_severe) %>%
+    blur_it(c(neg_var, 'Total'), ...) %>%
+    mutate(!!count_var := Total - !!neg_var) %>%
     transmute(
-      neuro_post,
-      Nonsevere = concat(non_severe, non_severe/Total),
-      Severe = concat(severe, severe/Total),
-      `Median time to severity onset [Min, Max] (days)` = concat_median(median_time, min_time, max_time),
-      `Mean time to severity onset (SD) (days)` = concat_mean(mean_time, sd_time)) %>%
-    pivot_longer(-neuro_post) %>%
-    pivot_wider(names_from = neuro_post, values_from = value) %>%
-    tibble::column_to_rownames('name')
+      !!group_var,
+      !!neg_var := concat(!!neg_var, !!neg_var/Total),
+      !!Count_var := concat(!!count_var, !!count_var/Total)) %>%
+    pivot_longer(- !!group_var) %>%
+    pivot_wider(names_from = !!group_var, values_from = value)
 }
 
-survival_stats <- function(df, ...) {
-  # summary statistics for survival status
-  # count values are obfuscated
-
-  df %>%
-    select(neuro_post, time_death = time_to_death) %>%
-    group_by(neuro_post) %>%
-    summarise(median_time = median(time_death, na.rm = TRUE),
-              min_time = min(time_death, na.rm = TRUE),
-              max_time = max(time_death, na.rm = TRUE),
-              mean_time = mean(time_death, na.rm = TRUE),
-              sd_time = sd(time_death, na.rm = TRUE),
-              alive = sum(is.na(time_death)),
-              Total = n(),
-              .groups = 'drop') %>%
-    blur_it(c('alive', 'Total'), ...) %>%
-    mutate(deceased = Total - alive) %>%
-    transmute(
-      neuro_post,
-      Alive = concat(alive, alive/Total),
-      Deceased = concat(deceased, deceased/Total),
-      `Median time to death [Min, Max] (days)` = concat_median(median_time, min_time, max_time),
-      `Mean time to death (SD) (days)` = concat_mean(mean_time, sd_time)) %>%
-    pivot_longer(-neuro_post) %>%
-    pivot_wider(names_from = neuro_post, values_from = value) %>%
-    tibble::column_to_rownames('name')
-}
-
-nstay_stats <- function(df, ...) {
+continuous_stats <- function(df, cont_var, name, group_var,...) {
   # summary statistics for length of stay
   # count values are obfuscated
+  med <- sym(paste('Median', name, '[Min, Max]'))
+  mea <- sym(paste('Mean', name, '(SD)'))
+  cont_var <- sym(cont_var)
+  group_var <- sym(group_var)
 
   df %>%
-    select(neuro_post, n_stay) %>%
-    group_by(neuro_post) %>%
-    summarise(median_time = median(n_stay, na.rm = TRUE),
-              min_time = min(n_stay, na.rm = TRUE),
-              max_time = max(n_stay, na.rm = TRUE),
-              mean_time = mean(n_stay, na.rm = TRUE),
-              sd_time = sd(n_stay, na.rm = TRUE),
+    select(group_var, cont_var) %>%
+    group_by(!!group_var) %>%
+    summarise(median_var = median(!!cont_var, na.rm = TRUE),
+              min_var = min(!!cont_var, na.rm = TRUE),
+              max_var = max(!!cont_var, na.rm = TRUE),
+              mean_var = mean(!!cont_var, na.rm = TRUE),
+              sd_var = sd(!!cont_var, na.rm = TRUE),
               .groups = 'drop') %>%
     transmute(
-      neuro_post,
-      `Median length of stay [Min, Max] (days)` = concat_median(median_time, min_time, max_time),
-      `Mean length of stay (SD) (days)` = concat_mean(mean_time, sd_time)) %>%
-    pivot_longer(-neuro_post) %>%
-    pivot_wider(names_from = neuro_post, values_from = value) %>%
-    tibble::column_to_rownames('name')
+      !!group_var,
+      !!med := concat_median(median_var, min_var, max_var),
+      !!mea := concat_mean(mean_var, sd_var)) %>%
+    pivot_longer(- !!group_var) %>%
+    pivot_wider(names_from = !!group_var, values_from = value)
 }
 
-readmission_stats <- function(df, ...) {
-  # summary statistics for length of stay
-  # count values are obfuscated
-
-  df %>%
-    select(neuro_post, n_readmissions) %>%
-    group_by(neuro_post) %>%
-    summarise(median_readmis = median(n_readmissions, na.rm = TRUE),
-              min_readmis = min(n_readmissions, na.rm = TRUE),
-              max_readmis = max(n_readmissions, na.rm = TRUE),
-              mean_readmis = mean(n_readmissions, na.rm = TRUE),
-              sd_readmis = sd(n_readmissions, na.rm = TRUE),
-              .groups = 'drop') %>%
-    transmute(
-      neuro_post,
-      `Median number of readmissions [Min, Max]` =
-        concat_median(median_readmis, min_readmis, max_readmis),
-      `Mean number of readmissions (SD)` =
-        concat_mean(mean_readmis, sd_readmis)) %>%
-    pivot_longer(- neuro_post) %>%
-    pivot_wider(names_from = neuro_post, values_from = value) %>%
-    tibble::column_to_rownames('name')
-}
-
-elix_stats <- function(df, ...) {
-  # summary statistics for Elixhauser score
-  # count values are obfuscated
-
-  df %>%
-    select(neuro_post, elixhauser_score) %>%
-    group_by(neuro_post) %>%
-    summarise(median_elix = median(elixhauser_score, na.rm = TRUE),
-              min_elix = min(elixhauser_score, na.rm = TRUE),
-              max_elix = max(elixhauser_score, na.rm = TRUE),
-              mean_elix = mean(elixhauser_score, na.rm = TRUE),
-              sd_elix = sd(elixhauser_score, na.rm = TRUE),
-              .groups = 'drop') %>%
-    transmute(
-      neuro_post,
-      `Median Elixhauser score [Min, Max]` =
-        concat_median(median_elix, min_elix, max_elix),
-      `Mean Elixhauser score (SD)` =
-        concat_mean(mean_elix, sd_elix)) %>%
-    pivot_longer(- neuro_post) %>%
-    pivot_wider(names_from = neuro_post, values_from = value) %>%
-    tibble::column_to_rownames('name')
-}
-
-demo_stats <- function(df, var, ...){
+demo_stats <- function(var, df, group_var, ...){
+  group_var <- sym(group_var)
   svar <- sym(var)
   df %>%
     group_by(!!svar) %>%
-    count(neuro_post, name = 'n_var') %>%
+    count(!!group_var, name = 'n_var') %>%
     as.data.frame() %>%
     blur_it('n_var', ...) %>%
-    group_by(neuro_post) %>%
+    group_by(!!group_var) %>%
     mutate(both_neuro = sum(n_var)) %>%
     ungroup() %>%
     mutate(prop = n_var/both_neuro,
            pres = concat(n_var, n_var/both_neuro)) %>%
-    pivot_wider(- c(n_var, both_neuro), names_from = neuro_post,
+    pivot_wider(- c(n_var, both_neuro), names_from = !!group_var,
                 values_from = c(n_var, prop, pres)) %>%
     mutate(variable = paste(var, !!svar, sep = '.')) %>%
     replace_na(list(pres_no_neuro_cond = '0 (0%)',
                     pres_neuro_cond = '0 (0%)')) %>%
     select(- !!svar)
 }
-
 
 blur_it <- function(df, vars, blur_abs, mask_thres){
   # Obfuscate count values.
@@ -171,4 +95,79 @@ blur_it <- function(df, vars, blur_abs, mask_thres){
              !!var := ifelse(abs(!!var) < mask_thres, 0, !!var))
   }
   df
+}
+
+get_tables <- function(neuro_types,
+                       demo_df,
+                       scores_unique,
+                       comorb_names_elix,
+                       blur_abs,
+                       mask_thres,
+                       group_var = 'neuro_post',
+                       vars_to_obfs = c('sex',
+                                        'age_group',
+                                        'race',
+                                        'Severity',
+                                        'Survival',
+                                        'readmitted')) {
+
+  total_patients <- length(unique(demo_df$patient_num))
+  demo_obfus_table <- lapply(
+    vars_to_obfs,
+    demo_stats,
+    df = demo_df,
+    blur_abs = blur_abs,
+    mask_thres = mask_thres,
+    group_var = group_var
+  ) %>%
+    bind_rows()
+
+  other_obfus_table <-
+    bind_rows(
+      continuous_stats(demo_df, 'n_stay', 'length of stay', group_var),
+      count_stats(demo_df, 'severe', 'Nonsevere', group_var, blur_abs, mask_thres),
+      continuous_stats(demo_df, 'time_to_severe', 'time to severe', group_var),
+      count_stats(demo_df, 'deceased', 'Alive', group_var, blur_abs, mask_thres),
+      continuous_stats(demo_df, 'time_to_death', 'time to death', group_var),
+      continuous_stats(demo_df, 'n_readmissions', 'number of readmissions', group_var),
+      continuous_stats(
+        demo_df,
+        'time_to_first_readmission',
+        'time to first readmission',
+        group_var
+      ),
+      continuous_stats(
+        scores_unique,
+        'elixhauser_score',
+        'Elixhauser score',
+        group_var
+      )
+    )
+
+  elix_obfus_table1 <-
+    Reduce(
+      function(...)
+        left_join(..., by = c("Comorbidity", "Abbreviation")),
+      lapply(
+        neuro_types,
+        list_table1,
+        df = scores_unique,
+        num_pats = total_patients,
+        comorb_names = comorb_names_elix,
+        group_var = group_var,
+        blur_abs = blur_abs,
+        mask_thres = mask_thres
+      )
+    ) %>%
+    mutate(
+      n_Total = rowSums(select(., starts_with('n_'))),
+      prop_Total = n_Total / total_patients
+    ) %>%
+    arrange(desc(n_Total))
+
+  list(
+    demo_table = demo_obfus_table,
+    other_obfus_table = other_obfus_table,
+    elix_obfus_table1 = elix_obfus_table1
+  )
 }

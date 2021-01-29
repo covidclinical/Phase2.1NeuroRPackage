@@ -51,7 +51,8 @@ runAnalysis <-
       readr::read_csv(
         file.path(data_dir, 'LocalPatientObservations.csv'),
         col_types = list(patient_num = readr::col_character())
-      )
+      ) %>%
+      filter(concept_type %in% c("DIAG-ICD10", "DIAG-ICD9"))
 
     if (icd_version == 9){
       neuro_icds <- neuro_icds_9
@@ -60,10 +61,17 @@ runAnalysis <-
     }
 
     ## -------------------------------------------------------------------------
+
     neuro_patients <- obs_raw %>%
-      filter(days_since_admission >= 0,
-             concept_code %in% neuro_icds$icd) %>%
-      distinct(patient_num, concept_code)
+      filter(days_since_admission >= 0) %>%
+      right_join(neuro_icds, by = c('concept_code' = 'icd')) %>%
+      filter(!is.na(patient_num)) %>%
+      distinct(patient_num, concept_code, pns_cns) %>%
+      group_by(patient_num) %>%
+      mutate(nerv_sys_count = length(unique(pns_cns))) %>%
+      ungroup() %>%
+      mutate(neuro_type = case_when(nerv_sys_count == 2 ~ 'Both',
+                                    TRUE ~ as.character(pns_cns)))
 
     neuro_pt_post <- unique(neuro_patients$patient_num)
 
@@ -71,16 +79,32 @@ runAnalysis <-
       data.frame(patient_num = setdiff(demo_raw$patient_num, neuro_pt_post)) %>%
       mutate(concept_code = 'NN')
 
-    readmissions <- clin_raw %>%
+    comp_readmissions <- clin_raw %>%
       group_by(patient_num) %>%
       mutate(delta_hospitalized = diff(c(in_hospital[1], in_hospital))) %>%
+      mutate(
+        first_adm =
+          (delta_hospitalized == -1 & !duplicated(delta_hospitalized == -1))|
+          (delta_hospitalized == 1 & !duplicated(delta_hospitalized == 1))) %>%
       ungroup() %>%
+      {.}
+
+    n_readms <- comp_readmissions %>%
       filter(delta_hospitalized != 0,
              in_hospital == 1) %>%
       add_count(patient_num, name = 'n_readmissions') %>%
       arrange(desc(n_readmissions)) %>%
       select(patient_num, n_readmissions) %>%
       distinct()
+
+    readmissions <- comp_readmissions %>%
+      filter(patient_num %in% n_readms$patient_num, first_adm) %>%
+      select(patient_num, delta_hospitalized, days_since_admission) %>%
+      pivot_wider(names_from = delta_hospitalized,
+                  values_from = days_since_admission) %>%
+      mutate(time_to_first_readmission = `1` - `-1`) %>%
+      select(patient_num, time_to_first_readmission) %>%
+      left_join(n_readms, by = 'patient_num')
 
     ## -------------------------------------------------------------------------
     days_count_min_max <- obs_raw %>%
@@ -112,44 +136,15 @@ runAnalysis <-
       left_join(readmissions, by = 'patient_num') %>%
       replace_na(list(n_readmissions = 0))
 
-    demo_df <- demo_processed %>%
-      mutate(neuro_post = patient_num %in% neuro_pt_post %>%
-               as.factor() %>%
-               fct_recode(neuro_cond = "TRUE",
-                          no_neuro_cond = "FALSE"))
-
-    ## -------------------------------------------------------------------------
-    vars_to_obfs <- c("sex",
-                      'age_group',
-                      "race",
-                      "Severity",
-                      "Survival",
-                      "readmitted")
-    get_stats <-
-      function(x, df)
-        demo_stats(df, x, blur_abs, mask_thres)
-    demo_obfus_table <- lapply(vars_to_obfs, get_stats, df = demo_df) %>%
-      do.call(rbind, .)
-
-    ## -------------------------------------------------------------------------
-    nstay_obfus_table <- nstay_stats(demo_df, blur_abs, mask_thres)
-    severity_obfus_table <- severity_stats(demo_df, blur_abs, mask_thres)
-    survival_obfus_table <- survival_stats(demo_df, blur_abs, mask_thres)
-    readmission_obfus_table <- readmission_stats(demo_df, blur_abs, mask_thres)
-
-    ## -------------------------------------------------------------------------
-    n_patients <- nrow(demo_raw)
-    obs_raw <- obs_raw %>%
-      filter(concept_type %in% c("DIAG-ICD10", "DIAG-ICD9"))
 
     ## -------------------------------------------------------------------------
     # for elixhauser
     comorb_names_elix <- get_quan_elix_names()
-    comorbs_elix <- as.vector(comorb_names_elix$Abbreviation)
 
     # t1: earliest time point to consider comorbidities
     # t2: latest time point to consider comorbidities
-    # example <- t1 = -365, and t2 = -1 will map all all codes up to a year prior but before admission (admission = day 0)
+    # example <- t1 = -365, and t2 = -1 will map all all codes up to
+    # a year prior but before admission (admission = day 0)
 
     comorb_elix <- map_char_elix_codes(
       df = obs_raw,
@@ -159,270 +154,96 @@ runAnalysis <-
       map_type = 'elixhauser'
     )
 
-    ## -------------------------------------------------------------------------
-    # elixhauser
     index_scores_elix <- comorb_elix$index_scores %>%
       rename('elixhauser_score' = van_walraven_score)
     # van Walraven is a modification of Elixhauser comorbidity measure
     # doi.org/10.1097/MLR.0b013e31819432e5
     mapped_codes_table_elix <- comorb_elix$mapped_codes_table
-    comorb_names_elix$Abbreviation <-
-      as.character(comorb_names_elix$Abbreviation)
-
-    ## -------------------------------------------------------------------------
-    n_comorbs <- colSums(index_scores_elix[, comorbs_elix])
-    pos_comorbs <- names(n_comorbs[n_comorbs > 0])
-    elix_mat <- cor(index_scores_elix[, pos_comorbs])
-    comorb_unique <- index_scores_elix %>%
-      select(patient_num, elixhauser_score) %>%
-      left_join(demo_df, by = 'patient_num')
-
-    elix_obfus_table <-
-      elix_stats(comorb_unique, blur_abs, mask_thres)
-
-    other_obfus_table <-
-      bind_rows(
-        nstay_obfus_table,
-        readmission_obfus_table,
-        severity_obfus_table,
-        survival_obfus_table,
-        elix_obfus_table
-      )
-
-    ## -------------------------------------------------------------------------
-    scores_unique <- right_join0(index_scores_elix, demo_df, by = 'patient_num')
-
-    scores_neuro <- obs_raw %>%
-      # 1 patient can have different code but each only counted once
-      distinct(patient_num, concept_code) %>%
-      left_join(neuro_icds, by = c('concept_code' = 'icd')) %>%
-      left_join(scores_unique, by = 'patient_num') %>%
-      filter(!is.na(elixhauser_score)) %>%
-      mutate(
-        concept_code = case_when(
-          is.na(`Neurological Disease Category`) ~ 'NN',
-          TRUE ~ concept_code
-        ) %>%
-          as.factor() %>%
-          fct_reorder(-elixhauser_score),
-        `Neurological Disease Category` =
-          as.factor(`Neurological Disease Category`) %>%
-          fct_reorder(elixhauser_score)
-      ) %>%
-      {
-        .
-      }
-
-    elix_obfus_table1 <-
-      Reduce(
-        function(...)
-          left_join(..., by = c("Comorbidity", "Abbreviation")),
-        lapply(
-          c('no_neuro_cond', 'neuro_cond'),
-          list_table1,
-          df = scores_unique,
-          num_pats = nrow(demo_df),
-          comorb_names = comorb_names_elix,
-          blur_abs = blur_abs,
-          mask_thres = mask_thres
-        )
-      ) %>%
-      mutate(n_Total = n_no_neuro_cond + n_neuro_cond,
-             prop_Total = n_Total / nrow(demo_raw)) %>%
-      arrange(desc(n_Total))
-
-
-    ## -------------------------------------------------------------------------
-    reg_results <- run_regressions(scores_unique, include_race)
+    elix_mat <- cor(select(index_scores_elix, - c(patient_num, elixhauser_score)))
 
     ## -------------------------------------------------------------------------
     nstay_df <- neuro_patients %>%
+      select(patient_num, concept_code) %>%
       bind_rows(non_neuro_patients) %>%
-      left_join(demo_df, by = 'patient_num') %>%
-      left_join(index_scores_elix, by = 'patient_num') %>%
-      # mutate(concept_code = fct_reorder(concept_code, n_stay)) %>%
-      left_join(neuro_icds, by = c('concept_code' = 'icd')) %>%
-      mutate(
-        full_icd = case_when(
-          concept_code == 'NN' ~ 'No neurological condition',
-          TRUE ~ paste0(`ICD-10 Description`, ' (', concept_code, ')')
-        ) %>%
-          as.factor() %>% fct_reorder(n_stay)
-      )
+      left_join(demo_processed, by = 'patient_num') %>%
+      mutate(concept_code = fct_reorder(concept_code, n_stay)) %>%
+      left_join(neuro_icds, by = c('concept_code' = 'icd'))
 
-    summarised_obfus_icd <- nstay_df %>%
-      group_by(concept_code) %>%
-      summarise(
-        mean_stay = mean(n_stay),
-        median_stay = median(n_stay),
-        sd_stay = sd(n_stay),
-        mean_elix = mean(elixhauser_score, na.rm = TRUE),
-        median_elix = median(elixhauser_score, na.rm = TRUE),
-        sd_elix = sd(elixhauser_score, na.rm = TRUE),
-        n_patients = n(),
-        prop_deceased = mean(deceased),
-        prop_severe = mean(severe),
-        .groups = 'drop'
-      ) %>%
-      blur_it('n_patients', blur_abs, mask_thres)
+    icd_tables <- get_tables(
+      c('no_neuro_cond', 'neuro_cond'),
+      nstay_df,
+      right_join0(index_scores_elix, nstay_df, by = 'patient_num'),
+      comorb_names_elix,
+      blur_abs,
+      mask_thres,
+      'concept_code'
+    )[-3] # last element is not useful, remove
 
+    ## -------------------------------------------------------------------------
+    # Part 1: Binary outcome: neuro vs. non_neuro
+    demo_df <- demo_processed %>%
+      mutate(neuro_post = patient_num %in% neuro_pt_post %>%
+               as.factor() %>%
+               fct_recode(neuro_cond = "TRUE",
+                          no_neuro_cond = "FALSE"))
 
-    ## ----save-results-----------------------------------------------------------------------------------------------------------------------
-    obfus_tables <-  list(
-      demo_table = demo_obfus_table,
-      other_obfus_table = other_obfus_table,
-      elix_obfus_table1 = elix_obfus_table1,
-      summarised_obfus_icd = summarised_obfus_icd
+    scores_unique <- right_join0(index_scores_elix, demo_df, by = 'patient_num')
+
+    obfus_tables <- get_tables(
+      c('no_neuro_cond', 'neuro_cond'),
+      demo_df,
+      scores_unique,
+      comorb_names_elix,
+      blur_abs,
+      mask_thres
     ) %>%
       lapply(function(x) mutate(x, site = currSiteId))
 
-    list_results <- c(obfus_tables,
-                      list(site = currSiteId,
-                           elix_mat = elix_mat),
-                      reg_results)
+    ## -------------------------------------------------------------------------
+    reg_results <- run_regressions(scores_unique, include_race)
+    sub_reg_results <- run_subgroup_regs(scores_unique, include_race)
 
+    ## ----save-results---------------------------------------------------------
+    binary_results <- c(obfus_tables, reg_results, sub_reg_results)
 
     ## -------------------------------------------------------------------------
     ### Part 2: PNS vs CNS
-
-    ## -------------------------------------------------------------------------
     neuro_types <- c('None', 'Peripheral', 'Central', 'Both')
 
-    neuro_patients <- obs_raw %>%
-      filter(days_since_admission >= 0, ) %>%
-      right_join(neuro_icds, by = c('concept_code' = 'icd')) %>%
-      filter(!is.na(patient_num)) %>%
-      distinct(patient_num, concept_code, pns_cns) %>%
-      group_by(patient_num) %>%
-      mutate(nerv_sys_count = length(unique(pns_cns))) %>%
-      ungroup() %>%
-      mutate(neuro_type = case_when(nerv_sys_count == 2 ~ 'Both',
-                                    TRUE ~ as.character(pns_cns)))
-
-    patients_pns_cns <- neuro_patients %>%
-      distinct(patient_num, neuro_type)
-
-    neuro_pt_post <- unique(neuro_patients$patient_num)
-
-    non_neuro_patients <-
-      data.frame(patient_num = setdiff(demo_raw$patient_num, neuro_pt_post)) %>%
-      mutate(concept_code = 'NN')
-
-    readmissions <- clin_raw %>%
-      group_by(patient_num) %>%
-      mutate(delta_hospitalized = diff(c(in_hospital[1], in_hospital))) %>%
-      ungroup() %>%
-      filter(delta_hospitalized != 0,
-             in_hospital == 1) %>%
-      add_count(patient_num, name = 'n_readmissions') %>%
-      arrange(desc(n_readmissions)) %>%
-      select(patient_num, n_readmissions) %>%
-      distinct()
-
-
-    ## -------------------------------------------------------------------------
-    days_count_min_max <- obs_raw %>%
-      group_by(patient_num) %>%
-      summarise(
-        distinct_days = n_distinct(days_since_admission),
-        min_hos = min(days_since_admission),
-        .groups = 'drop'
-      )
-
     demo_df <- demo_processed %>%
-      left_join(select(neuro_patients, patient_num, neuro_type),
+      left_join(distinct(select(neuro_patients, patient_num, neuro_type)),
                 by = 'patient_num') %>%
       replace_na(list(neuro_type = 'None')) %>%
       mutate(neuro_post = forcats::fct_relevel(neuro_type, neuro_types))
 
-
-    ## -------------------------------------------------------------------------
-    demo_obfus_table <- lapply(vars_to_obfs, get_stats) %>%
-      do.call(rbind, .)
-
-
-    ## -------------------------------------------------------------------------
-    nstay_obfus_table <- nstay_stats(demo_df, blur_abs, mask_thres)
-    severity_obfus_table <- severity_stats(demo_df, blur_abs, mask_thres)
-    survival_obfus_table <- survival_stats(demo_df, blur_abs, mask_thres)
-    readmission_obfus_table <- readmission_stats(demo_df, blur_abs, mask_thres)
-
-    other_obfus_table <-
-      bind_rows(
-        nstay_obfus_table,
-        readmission_obfus_table,
-        severity_obfus_table,
-        survival_obfus_table
-      )
-
-    ## -------------------------------------------------------------------------
     scores_unique <- right_join0(index_scores_elix, demo_df, by = 'patient_num')
 
-    scores_neuro <- obs_raw %>%
-      # 1 patient can have different code but each only counted once
-      distinct(patient_num, concept_code) %>%
-      left_join(neuro_icds, by = c('concept_code' = 'icd')) %>%
-      left_join(scores_unique, by = 'patient_num') %>%
-      filter(!is.na(elixhauser_score)) %>%
-      mutate(
-        concept_code = case_when(
-          is.na(`Neurological Disease Category`) ~ 'NN',
-          TRUE ~ concept_code
-        ) %>%
-          as.factor() %>%
-          fct_reorder(-elixhauser_score),
-        `Neurological Disease Category` =
-          as.factor(`Neurological Disease Category`) %>%
-          fct_reorder(elixhauser_score)
-      )
-
-
-    elix_obfus_table1 <-
-      Reduce(
-        function(...)
-          left_join(..., by = c("Comorbidity", "Abbreviation")),
-        lapply(
-          neuro_types,
-          list_table1,
-          df = scores_unique,
-          num_pats = nrow(demo_df),
-          comorb_names = comorb_names_elix,
-          blur_abs = blur_abs,
-          mask_thres = mask_thres
-        )
-      ) %>%
-      mutate(
-        n_Total = n_None + n_Central + n_Peripheral + n_Both,
-        prop_Total = n_Total / nrow(demo_raw)
-      ) %>%
-      arrange(desc(n_Total))
-
-    ## -------------------------------------------------------------------------
-    reg_results <- run_regressions(scores_unique, include_race)
-
-
-    ## ----save-results---------------------------------------------------------
-    obfus_tables <-  list(
-      demo_table = demo_obfus_table,
-      other_obfus_table = other_obfus_table,
-      elix_obfus_table1 = elix_obfus_table1,
-      summarised_obfus_icd = summarised_obfus_icd
+    obfus_tables <- get_tables(
+      neuro_types,
+      demo_df,
+      scores_unique,
+      comorb_names_elix,
+      blur_abs,
+      mask_thres
     ) %>%
       lapply(function(x) mutate(x, site = currSiteId))
 
-    list_results_cpns <- c(obfus_tables,
-                           list(site = currSiteId,
-                                elix_mat = elix_mat),
-                           reg_results)
+    ## -------------------------------------------------------------------------
+    reg_results <- run_regressions(scores_unique, include_race)
+    sub_reg_results <- run_subgroup_regs(scores_unique, include_race)
 
+    ## ----save-results---------------------------------------------------------
+    cpns_results <- c(obfus_tables, reg_results, sub_reg_results)
 
-    results <- list(list_results = list_results,
-                    list_results_cpns = list_results_cpns)
+    results <- list(site = currSiteId,
+                    icd_tables = icd_tables,
+                    elix_mat = elix_mat,
+                    binary_results = binary_results,
+                    cpns_results = cpns_results)
+
     site_results <- paste0(currSiteId, '_results')
     assign(site_results, results)
     save(list = site_results,
          file = file.path(getProjectOutputDirectory(),
                           paste0(currSiteId, '_results.rda')))
-
-
   }

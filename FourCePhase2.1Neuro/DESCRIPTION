@@ -20,7 +20,8 @@ Imports:
   dplyr (== 1.0.2),
   rcartocolor (== 2.0.0),
   purrr (== 0.3.4),
-  remotes (== 2.2.0)
+  remotes (== 2.2.0),
+  stringr (== 1.4.0)
 Suggests:
   icd,
   FourCePhase2.1Data,
