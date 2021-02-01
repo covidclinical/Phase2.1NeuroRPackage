@@ -9,63 +9,16 @@ right_join0 <- function(x, y, fill = 0L, ...){
   tidyr::replace_na(z, setNames(as.list(rep(fill, length(tmp))), tmp))
 }
 
-run_regression <-
-  function(df, depend_var, binary = TRUE, include_race = TRUE) {
-    independ_vars <- '~ neuro_post + elixhauser_score + sex + age_group'
-    if (include_race)
-      independ_vars <- paste(independ_vars, '+ race')
-
-    if (binary) {
-      # is dependent variable binary?
-      glm(as.formula(paste(depend_var, independ_vars)),
-          family = 'binomial', data = df) %>%
-        summary()
-    } else {
-      lm(as.formula(paste(depend_var, independ_vars)), data = df) %>%
-        summary()
-    }
-  }
-
-run_regressions <- function(df, include_race = TRUE) {
-  severe_reg_elix <-
-    run_regression(df, 'severe', TRUE, include_race)
-
-  deceased_reg_elix <-
-    run_regression(df, 'deceased', TRUE, include_race)
-
-  n_stay_reg_elix <-
-    run_regression(df, 'n_stay', FALSE, include_race)
-
-  n_readmit_reg_elix <-
-    run_regression(df, 'n_readmissions', FALSE, include_race)
-
-  readmit_reg_elix <-
-    run_regression(df, 'readmitted', TRUE, include_race)
-
-  list(
-    n_stay_reg_elix = n_stay_reg_elix,
-    severe_reg_elix = severe_reg_elix,
-    deceased_reg_elix = deceased_reg_elix,
-    n_readmit_reg_elix = n_readmit_reg_elix,
-    readmit_reg_elix = readmit_reg_elix
-  )
+concat <- function(x, y){
+  paste0(x, ' (', round(y, 3)*100, '%)')
 }
 
-run_subgroup_regs <- function(df, include_race = TRUE) {
-  time_severe_reg_elix <-
-    run_regression(df, 'time_to_severe', FALSE, include_race)
+concat_median <- function(med, mi, ma){
+  paste0(med, ' [', mi, ', ', ma, ']')
+}
 
-  time_deceased_reg_elix <-
-    run_regression(df, 'time_to_death', FALSE, include_race)
-
-  time_reg_elix <-
-    run_regression(df, 'time_to_first_readmission', FALSE, include_race)
-
-  list(
-    time_severe_reg_elix = time_severe_reg_elix,
-    time_deceased_reg_elix = time_deceased_reg_elix,
-    time_reg_elix = time_reg_elix
-  )
+concat_mean <- function(mea, s, acc = 0){
+  paste0(round(mea, acc), ' (', round(s, acc), ')')
 }
 
 # library(epitools)

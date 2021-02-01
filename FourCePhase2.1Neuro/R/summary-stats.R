@@ -1,14 +1,3 @@
-concat <- function(x, y){
-  paste0(x, ' (', round(y, 3)*100, '%)')
-}
-
-concat_median <- function(med, mi, ma){
-  paste0(med, ' [', mi, ', ', ma, ']')
-}
-
-concat_mean <- function(mea, s, acc = 0){
-  paste0(round(mea, acc), ' (', round(s, acc), ')')
-}
 
 count_stats <- function(df, count_var, neg_var, group_var, ...) {
   # summary statistics for survival/severity status
@@ -78,7 +67,8 @@ demo_stats <- function(var, df, group_var, ...){
     mutate(variable = paste(var, !!svar, sep = '.')) %>%
     replace_na(list(pres_no_neuro_cond = '0 (0%)',
                     pres_neuro_cond = '0 (0%)')) %>%
-    select(- !!svar)
+    select(- !!svar) %>%
+    select(variable, everything())
 }
 
 blur_it <- function(df, vars, blur_abs, mask_thres){
@@ -122,6 +112,7 @@ get_tables <- function(neuro_types,
   ) %>%
     bind_rows()
 
+  suppressWarnings(
   other_obfus_table <-
     bind_rows(
       continuous_stats(demo_df, 'n_stay', 'length of stay', group_var),
@@ -143,7 +134,7 @@ get_tables <- function(neuro_types,
         group_var
       )
     )
-
+  )
   elix_obfus_table1 <-
     Reduce(
       function(...)
@@ -170,4 +161,35 @@ get_tables <- function(neuro_types,
     other_obfus_table = other_obfus_table,
     elix_obfus_table1 = elix_obfus_table1
   )
+}
+
+get_table1 <- function(
+  df, num_pats, comorbidities,
+  pat_col = 'patients', ...
+)
+{
+  col_char <- paste('n', pat_col, sep = '_')
+  npat_col <- sym(col_char)
+  proppat_col = sym(paste('prop', pat_col, sep = '_'))
+  comorbidities_map = comorbidities$Abbreviation
+
+  df %>%
+    select(all_of(comorbidities_map)) %>%
+    colSums() %>%
+    data.frame(n_patients = .) %>%
+    tibble::rownames_to_column("Abbreviation") %>%
+    blur_it('n_patients', ...) %>%
+    mutate(prop_patients = n_patients/num_pats) %>%
+    rename(!!npat_col := n_patients,
+           !!proppat_col := prop_patients) %>%
+    right_join(comorbidities, ., by = "Abbreviation")
+}
+
+list_table1 <- function(x, df, num_pats, comorb_names, group_var, ...){
+  group_var <- sym(group_var)
+  get_table1(
+    df %>% filter(!!group_var == x),
+    num_pats,
+    comorbidities = comorb_names,
+    pat_col = x, ...)
 }

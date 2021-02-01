@@ -154,37 +154,6 @@ map_char_elix_codes <- function(df, comorb_names, icd_version = 10,
 }
 
 # where df takes in the matrix for the initial mapping
-get_table1 <- function(
-  df, num_pats, comorbidities,
-  pat_col = 'patients', ...
-)
-  {
-  col_char <- paste('n', pat_col, sep = '_')
-  npat_col <- sym(col_char)
-  proppat_col = sym(paste('prop', pat_col, sep = '_'))
-  comorbidities_map = comorbidities$Abbreviation
-
-  df %>%
-    select(all_of(comorbidities_map)) %>%
-    colSums() %>%
-    data.frame(n_patients = .) %>%
-    tibble::rownames_to_column("Abbreviation") %>%
-    blur_it('n_patients', ...) %>%
-    mutate(prop_patients = n_patients/num_pats) %>%
-    rename(!!npat_col := n_patients,
-           !!proppat_col := prop_patients) %>%
-    right_join(comorbidities, ., by = "Abbreviation")
-}
-
-list_table1 <- function(x, df, num_pats, comorb_names, group_var, ...){
-  group_var <- sym(group_var)
-  get_table1(
-    df %>% filter(!!group_var == x),
-    num_pats,
-    comorbidities = comorb_names,
-    pat_col = x, ...)
-}
-
 get_charlson_names <- function(){
   data.frame(
     Comorbidity = do.call(rbind, icd::names_charlson),
