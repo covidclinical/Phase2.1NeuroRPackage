@@ -66,7 +66,8 @@ if (getRversion() >= "2.15.1") {
       'time_to_severe',
       'time_to_first_readmission',
       'value',
-      'van_walraven_score'
+      'van_walraven_score',
+      'variable'
     )
   )
 }
