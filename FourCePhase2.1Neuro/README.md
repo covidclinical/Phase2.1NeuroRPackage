@@ -15,15 +15,17 @@ remotes::install_github('covidclinical/Phase2.1NeuroRPackage',
 
 ## How to run
 
-The main function `runAnalysis()` has 3 required arguments. See your
+The main function `runAnalysis()` has 4 required arguments. See your
 site obfuscation parameters (`mask_thres` and `blur_abs`)
 [here](https://docs.google.com/spreadsheets/d/1Xl9juDBXt86P3xQtsoTaBl2zPl1BIiAG9DI3Rotyqp8/edit#gid=212461777).
-If your site does not have race information, set `include_race = FALSE`.
+If the site’s ICD codes are primarily of version 9, set
+`icd_version = 9`. If your site does not have race information, set
+`include_race = FALSE`.
 
 ``` r
 library(Phase2.1NeuroRPackage)
 
-runAnalysis(mask_thres = 10, blur_abs = 0, include_race = TRUE)
+runAnalysis(mask_thres = 10, blur_abs = 0, icd_version = 10, include_race = TRUE)
 ```
 
 Finally, please submit the results to the central repository:
