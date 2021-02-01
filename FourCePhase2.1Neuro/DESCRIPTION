@@ -27,9 +27,7 @@ Suggests:
   FourCePhase2.1Data,
   FourCePhase2.1Utilities
 Remotes: 
-  jackwasey/icd@e54bb24,
-  covidclinical/Phase2.1DataRPackage@77d32fe,
-  covidclinical/FourCePhase2.1Utilities@2c451d8
+  jackwasey/icd@e54bb24
 Depends: 
     R (>= 2.10)
 RoxygenNote: 7.1.1
