@@ -1,36 +1,48 @@
 
 run_regression <-
-  function(df, depend_var, binary = TRUE, include_race = TRUE) {
-    independ_vars <- '~ neuro_post + elixhauser_score + sex + age_group'
-    if (include_race)
-      independ_vars <- paste(independ_vars, '+ race')
+  function(df, depend_var, ind_vars, binary = TRUE) {
+    independ_vars <- paste(ind_vars, collapse = ' + ')
 
     if (binary) {
       # is dependent variable binary?
-      glm(as.formula(paste(depend_var, independ_vars)),
+      glm(as.formula(paste(depend_var, '~', independ_vars)),
           family = 'binomial', data = df) %>%
         summary()
     } else {
-      lm(as.formula(paste(depend_var, independ_vars)), data = df) %>%
+      lm(as.formula(paste(depend_var, '~', independ_vars)), data = df) %>%
         summary()
     }
   }
 
+get_ind_vars <- function(df, include_race){
+  unique_cols <- apply(df, 2, function(x) length(unique(x)))
+
+  ind_vars <- setdiff(
+    c('neuro_post', 'elixhauser_score', 'sex', 'age_group'),
+    names(unique_cols)[unique_cols == 1])
+
+  if (include_race)
+    ind_vars <- c(ind_vars, 'race')
+  ind_vars
+}
+
 run_regressions <- function(df, include_race = TRUE) {
+  ind_vars <- get_ind_vars(df, include_race)
+
   severe_reg_elix <-
-    run_regression(df, 'severe', TRUE, include_race)
+    run_regression(df, 'severe', ind_vars, TRUE)
 
   deceased_reg_elix <-
-    run_regression(df, 'deceased', TRUE, include_race)
+    run_regression(df, 'deceased', ind_vars, TRUE)
 
   n_stay_reg_elix <-
-    run_regression(df, 'n_stay', FALSE, include_race)
+    run_regression(df, 'n_stay', ind_vars, FALSE)
 
   n_readmit_reg_elix <-
-    run_regression(df, 'n_readmissions', FALSE, include_race)
+    run_regression(df, 'n_readmissions', ind_vars, FALSE)
 
   readmit_reg_elix <-
-    run_regression(df, 'readmitted', TRUE, include_race)
+    run_regression(df, 'readmitted', ind_vars, TRUE)
 
   list(
     n_stay_reg_elix = n_stay_reg_elix,
@@ -42,14 +54,16 @@ run_regressions <- function(df, include_race = TRUE) {
 }
 
 run_subgroup_regs <- function(df, include_race = TRUE) {
+  ind_vars <- get_ind_vars(df, include_race)
+
   time_severe_reg_elix <-
-    run_regression(df, 'time_to_severe', FALSE, include_race)
+    run_regression(df, 'time_to_severe', ind_vars, FALSE)
 
   time_deceased_reg_elix <-
-    run_regression(df, 'time_to_death', FALSE, include_race)
+    run_regression(df, 'time_to_death', ind_vars, FALSE)
 
   time_reg_elix <-
-    run_regression(df, 'time_to_first_readmission', FALSE, include_race)
+    run_regression(df, 'time_to_first_readmission', ind_vars, FALSE)
 
   list(
     time_severe_reg_elix = time_severe_reg_elix,
