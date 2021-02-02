@@ -1,6 +1,9 @@
 
 run_regression <-
   function(df, depend_var, ind_vars, binary = TRUE) {
+    if (length(unique(df[, depend_var])) <= 1)
+      return(NULL)
+
     independ_vars <- paste(ind_vars, collapse = ' + ')
 
     if (binary) {
