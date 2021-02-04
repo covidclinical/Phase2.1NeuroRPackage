@@ -48,7 +48,7 @@ runAnalysis <-
         na = '1900-01-01'
       ) %>%
       mutate(last_discharge_date = if_else(
-        death_date < last_discharge_date,
+        !is.na(death_date) & death_date < last_discharge_date,
         death_date,
         last_discharge_date))
 
