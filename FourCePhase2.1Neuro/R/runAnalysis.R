@@ -47,10 +47,15 @@ runAnalysis <-
         col_types = list(patient_num = readr::col_character()),
         na = '1900-01-01'
       ) %>%
-      mutate(last_discharge_date = if_else(
-        !is.na(death_date) & death_date < last_discharge_date,
-        death_date,
-        last_discharge_date))
+      mutate(across(ends_with('_date') &
+                      where(is.character), lubridate::mdy)) %>%
+      mutate(
+        last_discharge_date = if_else(
+          !is.na(death_date) & death_date < last_discharge_date,
+          death_date,
+          last_discharge_date
+        )
+      )
 
     obs_raw <-
       readr::read_csv(
