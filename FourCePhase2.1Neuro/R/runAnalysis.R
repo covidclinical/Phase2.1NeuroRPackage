@@ -136,5 +136,8 @@ runAnalysis <-
     save(list = site_results,
          file = file.path(getProjectOutputDirectory(),
                           paste0(currSiteId, '_results.rda')))
-    print('Result is saved under ', getProjectOutputDirectory())
+    cat('Result is saved in',
+        file.path(getProjectOutputDirectory(),
+                  paste0(currSiteId, '_results.rda')),
+        '\n')
   }
