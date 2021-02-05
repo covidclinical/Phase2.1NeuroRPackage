@@ -49,13 +49,14 @@ runAnalysis <-
       ) %>%
       mutate(across(ends_with('_date') &
                       where(is.character), lubridate::mdy)) %>%
-      mutate(
-        last_discharge_date = if_else(
-          !is.na(death_date) & death_date < last_discharge_date,
-          death_date,
-          last_discharge_date
-        )
-      )
+      # mutate(
+      #   last_discharge_date = if_else(
+      #     !is.na(death_date) & death_date < last_discharge_date,
+      #     death_date,
+      #     last_discharge_date
+      #   )
+      # ) %>%
+      {.}
 
     obs_raw <-
       readr::read_csv(
