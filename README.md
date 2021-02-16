@@ -40,7 +40,7 @@ runAnalysis(mask_thres = 10, blur_abs = 0, icd_version = 10, include_race = TRUE
 ```
 
 Finally, please submit the results to the central repository. Please
-note that you would need to use a *token* to access private repos, see
+note that you would need to use a token to access **private** repos, see
 [here](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token).
 
 ``` r
@@ -50,7 +50,7 @@ submitAnalysis()
 Briefly, to generate a new token, go to your GitHub settings -&gt;
 Developer settings -&gt; Personal access tokens -&gt; Generate.
 
-![](images/token.png)
+![](FourCePhase2.1Neuro/images/token.png)
 
 ## Other notes
 
