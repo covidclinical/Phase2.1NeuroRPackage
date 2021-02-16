@@ -136,8 +136,10 @@ runAnalysis <-
     save(list = site_results,
          file = file.path(getProjectOutputDirectory(),
                           paste0(currSiteId, '_results.rda')))
+    save(list = site_results,
+         file = paste0(currSiteId, '_results.rda'))
     cat('Result is saved in',
         file.path(getProjectOutputDirectory(),
                   paste0(currSiteId, '_results.rda')),
-        '\n')
+        '\nPlease submit the result file by running submitAnalysis()')
   }

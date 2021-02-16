@@ -55,13 +55,14 @@ Briefly, to generate a new token, go to your GitHub settings -> Developer settin
 
 ## Other notes
 
-If everything runs smoothly, your result would be under `Phase2.1NeuroR` in your home directory, _i.e._, `~/Phase2.1NeuroR`.
-For example, for me, it's `/data2/home/ttle/Phase2.1NeuroR/penn_results.rda`.
-If somehow `submitAnalysis()` didn't allow you to upload the results to [Phase2.1NeuroRSummariesPublic](https://github.com/covidclinical/Phase2.1NeuroRSummariesPublic) , you can share the results file with us (@meghutch and @trang1618) via the #neuro Slack channel.
+If everything runs smoothly, your results would also be saved under `your_path_here` (where you specified the `Input` folder earlier).
+For example, for me, it's `/data2/home/ttle/4ce/UPENN_results.rda`.
+If somehow `submitAnalysis()` didn't allow you to upload the results to [Phase2.1NeuroRSummariesPublic](https://github.com/covidclinical/Phase2.1NeuroRSummariesPublic), 
+you can share the results file with us (@meghutch and @trang) via the #neuro Slack channel.
 
 To get back to the command line at any point, type `quit()` in the R environment.
 Note that this will exit the container, and you would have to open another one and reinstall the package if you want to rerun.
 
 If you run into any problem adapting this code to your data, let us know via Slack or [submit an issue](https://github.com/covidclinical/Phase2.1NeuroRPackage/issues/new).
 
-Thank you very much for your support!
+Thank you very much for your contribution!
