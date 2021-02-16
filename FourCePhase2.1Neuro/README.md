@@ -50,7 +50,7 @@ submitAnalysis()
 Briefly, to generate a new token, go to your GitHub settings -&gt;
 Developer settings -&gt; Personal access tokens -&gt; Generate.
 
-![](images/token.png)
+![](FourCePhase2.1Neuro/images/token.png)
 
 ## Other notes
 
