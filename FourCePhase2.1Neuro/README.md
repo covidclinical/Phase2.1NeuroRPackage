@@ -47,6 +47,11 @@ note that you would need to use a *token* to access private repos, see
 submitAnalysis()
 ```
 
+Briefly, to generate a new token, go to your GitHub settings -&gt;
+Developer settings -&gt; Personal access tokens -&gt; Generate.
+
+![](images/token.png)
+
 ## Other notes
 
 If everything runs smoothly, your result would be under `Phase2.1NeuroR`

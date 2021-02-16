@@ -49,6 +49,10 @@ Please note that you would need to use a _token_ to access private repos, see [h
 submitAnalysis()
 ```
 
+Briefly, to generate a new token, go to your GitHub settings -> Developer settings -> Personal access tokens -> Generate.
+
+![](images/token.png)
+
 ## Other notes
 
 If everything runs smoothly, your result would be under `Phase2.1NeuroR` in your home directory, _i.e._, `~/Phase2.1NeuroR`.
