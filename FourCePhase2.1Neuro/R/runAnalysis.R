@@ -47,7 +47,9 @@ runAnalysis <-
         col_types = list(patient_num = readr::col_character()),
         na = c('1900-01-01', '1/1/1900')
       ) %>%
-      mutate_at(vars(which(sapply(., is.character) & names(contains('_date')))), lubridate::mdy) %>%
+      # mutate_at(vars(which(sapply(., is.character) & names(contains('_date')))), lubridate::mdy) %>%
+      mutate(across(ends_with('_date') &
+                      tidywhere(is.character), lubridate::mdy)) %>%
       mutate(
         last_discharge_date = if_else(
           !is.na(death_date) & death_date < last_discharge_date,

@@ -21,6 +21,16 @@ concat_mean <- function(mea, s, acc = 0){
   paste0(round(mea, acc), ' (', round(s, acc), ')')
 }
 
+tidywhere <- function (fn){
+  # https://github.com/r-lib/tidyselect/issues/201#issuecomment-650547846
+  # where is not exported in tidyselect
+  predicate <- purrr::as_mapper(fn)
+  function(x, ...) {
+    out <- predicate(x, ...)
+    out
+  }
+}
+
 # library(epitools)
 #
 # my_riskratio <- function (x, conf.level = 0.95,
