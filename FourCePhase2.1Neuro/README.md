@@ -12,7 +12,7 @@ docker run \
   --name 4ce \
   --volume your_path_here:/4ceData \
   --rm -it \
-  dbmi/4ce-analysis:development R
+  dbmi/4ce-analysis:version-2.0.0 R
 ```
 
 This should open up the interactive R environment on your terminal. Now,

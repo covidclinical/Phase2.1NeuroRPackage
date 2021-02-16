@@ -45,7 +45,7 @@ runAnalysis <-
       readr::read_csv(
         file.path(data_dir, 'LocalPatientSummary.csv'),
         col_types = list(patient_num = readr::col_character()),
-        na = '1900-01-01'
+        na = c('1900-01-01', '1/1/1900')
       ) %>%
       mutate_at(vars(which(sapply(., is.character) & names(contains('_date')))), lubridate::mdy) %>%
       mutate(
