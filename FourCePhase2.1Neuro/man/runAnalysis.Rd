@@ -4,13 +4,7 @@
 \alias{runAnalysis}
 \title{Run analysis}
 \usage{
-runAnalysis(
-  mask_thres,
-  blur_abs,
-  icd_version = 10,
-  include_race = TRUE,
-  data_dir = "Input"
-)
+runAnalysis(mask_thres, blur_abs, icd_version = 10, include_race = TRUE)
 }
 \arguments{
 \item{mask_thres}{Obfuscation small count mask threshold (e.g. 10)}
@@ -21,9 +15,6 @@ runAnalysis(
 
 \item{include_race}{Boolean. Whether race should be included
 in the regression model.}
-
-\item{data_dir}{Optional. Directory where datasets are located.
-Defaults to 'Input'.}
 }
 \value{
 NULL. Result files are written out to the `getProjectOutputDirectory()` directory.

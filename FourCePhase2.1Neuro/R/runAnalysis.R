@@ -5,8 +5,6 @@
 #' @param icd_version Version of ICD code the site uses. Must be EITHER 9 or 10.
 #' @param include_race Boolean. Whether race should be included
 #' in the regression model.
-#' @param data_dir Optional. Directory where datasets are located.
-#' Defaults to 'Input'.
 #'
 #' @return NULL. Result files are written out to the `getProjectOutputDirectory()` directory.
 #'
@@ -21,14 +19,14 @@ runAnalysis <-
   function(mask_thres,
            blur_abs,
            icd_version = 10,
-           include_race = TRUE,
-           data_dir = 'Input') {
+           include_race = TRUE) {
 
     ## make sure this instance has the latest version of the quality control and data wrangling code available
     # remotes::install_github("covidclinical/Phase2.1DataRPackage@77d32fe", subdir="FourCePhase2.1Data", upgrade=FALSE)
 
     ## get the site identifier assocaited with the files stored in the /4ceData/Input directory that
     ## is mounted to the container
+    data_dir <- FourCePhase2.1Data::getInputDataDirectoryName()
     currSiteId <- FourCePhase2.1Data::getSiteId()
 
     ## run the quality control
@@ -112,6 +110,59 @@ runAnalysis <-
       filter(first_out) %>%
       select(patient_num, n_stay = days_since_admission)
 
+    demo_processed_first <- demo_raw %>%
+      left_join(nstay_df, by = 'patient_num') %>%
+      mutate(
+        time_to_severe = as.numeric(severe_date - admission_date, 'days'),
+        time_to_death = as.numeric(death_date - admission_date, 'days'),
+        time_to_severe = if_else(
+          time_to_severe < 0 |
+            time_to_severe > n_stay,
+          NA_real_,
+          time_to_severe
+        ),
+        time_to_death = if_else(
+          time_to_death < 0 |
+            time_to_death > n_stay,
+          NA_real_,
+          time_to_death
+        ),
+        severe =  if_else(is.na(time_to_severe), 0, 1),
+        deceased =  if_else(is.na(time_to_death), 0, 1),
+        readmitted = patient_num %in% readmissions$patient_num,
+        sex = as.factor(sex),
+        race = as.factor(race),
+        age_group = as.factor(age_group),
+        Severity = as.factor(severe) %>%
+          fct_recode(Severe = "1", `Non-severe` = "0"),
+        Survival = as.factor(deceased) %>%
+          fct_recode(Alive = "0", Deceased = "1")
+      ) %>%
+      # left_join(days_count_min_max, by = 'patient_num') %>%
+      left_join(readmissions, by = 'patient_num') %>%
+      replace_na(list(n_readmissions = 0))
+
+    demo_processed_all <- demo_raw %>%
+      mutate(
+        time_to_severe = severe_date - admission_date,
+        time_to_severe = ifelse(time_to_severe < 0, NA, time_to_severe),
+        time_to_death = death_date - admission_date,
+        time_to_death = ifelse(time_to_death < 0, NA, time_to_death),
+        readmitted = patient_num %in% readmissions$patient_num,
+        sex = as.factor(sex),
+        race = as.factor(race),
+        age_group = as.factor(age_group),
+        Severity = as.factor(severe) %>%
+          fct_recode(Severe = "1", `Non-severe` = "0"),
+        Survival = as.factor(deceased) %>%
+          fct_recode(Alive = "0", Deceased = "1"),
+        n_stay = as.numeric(last_discharge_date - admission_date,
+                            units = "days")
+      ) %>%
+      # left_join(days_count_min_max, by = 'patient_num') %>%
+      left_join(readmissions, by = 'patient_num') %>%
+      replace_na(list(n_readmissions = 0))
+
     results <- list(
       all_hosp_results = run_hosps(
         mask_thres,
@@ -119,11 +170,7 @@ runAnalysis <-
         include_race,
         currSiteId,
         readmissions,
-        mutate(
-          demo_raw,
-          n_stay = as.numeric(last_discharge_date - admission_date,
-                              units = "days")
-        ),
+        demo_processed_all,
         obs_raw,
         neuro_icds
       ),
@@ -133,7 +180,7 @@ runAnalysis <-
         include_race,
         currSiteId,
         readmissions,
-        left_join(demo_raw, nstay_df, by = 'patient_num'),
+        demo_processed_first,
         obs_first_hosp,
         neuro_icds
       )

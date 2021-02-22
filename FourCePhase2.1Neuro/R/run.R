@@ -80,7 +80,7 @@ run_hosps <- function(mask_thres,
                       include_race,
                       currSiteId,
                       readmissions,
-                      demo_raw,
+                      demo_processed,
                       obs_raw,
                       neuro_icds) {
   ## -------------------------------------------------------------------------
@@ -99,37 +99,17 @@ run_hosps <- function(mask_thres,
   neuro_pt_post <- unique(neuro_patients$patient_num)
 
   non_neuro_patients <-
-    data.frame(patient_num = setdiff(demo_raw$patient_num, neuro_pt_post)) %>%
+    data.frame(patient_num = setdiff(demo_processed$patient_num, neuro_pt_post)) %>%
     mutate(concept_code = 'NN')
 
   ## -------------------------------------------------------------------------
-  days_count_min_max <- obs_raw %>%
-    group_by(patient_num) %>%
-    summarise(
-      distinct_days = n_distinct(days_since_admission),
-      min_hos = min(days_since_admission),
-      .groups = 'drop'
-    )
-
-  demo_processed <- demo_raw %>%
-    mutate(
-      time_to_severe = severe_date - admission_date,
-      time_to_severe = ifelse(time_to_severe < 0, NA, time_to_severe),
-      time_to_death = death_date - admission_date,
-      time_to_death = ifelse(time_to_death < 0, NA, time_to_death),
-      readmitted = patient_num %in% readmissions$patient_num,
-      sex = as.factor(sex),
-      race = as.factor(race),
-      age_group = as.factor(age_group),
-      Severity = as.factor(severe) %>%
-        fct_recode(Severe = "1", `Non-severe` = "0"),
-      Survival = as.factor(deceased) %>%
-        fct_recode(Alive = "0", Deceased = "1")
-    ) %>%
-    left_join(days_count_min_max, by = 'patient_num') %>%
-    left_join(readmissions, by = 'patient_num') %>%
-    replace_na(list(n_readmissions = 0))
-
+  # days_count_min_max <- obs_raw %>%
+  #   group_by(patient_num) %>%
+  #   summarise(
+  #     distinct_days = n_distinct(days_since_admission),
+  #     min_hos = min(days_since_admission),
+  #     .groups = 'drop'
+  #   )
 
   ## -------------------------------------------------------------------------
   # for elixhauser
