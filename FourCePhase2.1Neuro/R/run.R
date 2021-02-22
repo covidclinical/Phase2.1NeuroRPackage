@@ -124,9 +124,7 @@ run_hosps <- function(mask_thres,
       Severity = as.factor(severe) %>%
         fct_recode(Severe = "1", `Non-severe` = "0"),
       Survival = as.factor(deceased) %>%
-        fct_recode(Alive = "0", Deceased = "1"),
-      n_stay = as.numeric(last_discharge_date - admission_date,
-                          units = "days")
+        fct_recode(Alive = "0", Deceased = "1")
     ) %>%
     left_join(days_count_min_max, by = 'patient_num') %>%
     left_join(readmissions, by = 'patient_num') %>%

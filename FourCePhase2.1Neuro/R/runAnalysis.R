@@ -108,6 +108,10 @@ runAnalysis <-
       filter(days_since_admission < dsa) %>%
       select(-dsa)
 
+    nstay_df <- comp_readmissions %>%
+      filter(first_out) %>%
+      select(patient_num, n_stay = days_since_admission)
+
     results <- list(
       all_hosp_results = run_hosps(
         mask_thres,
@@ -115,7 +119,11 @@ runAnalysis <-
         include_race,
         currSiteId,
         readmissions,
-        demo_raw,
+        mutate(
+          demo_raw,
+          n_stay = as.numeric(last_discharge_date - admission_date,
+                              units = "days")
+        ),
         obs_raw,
         neuro_icds
       ),
@@ -125,7 +133,7 @@ runAnalysis <-
         include_race,
         currSiteId,
         readmissions,
-        demo_raw,
+        left_join(demo_raw, nstay_df, by = 'patient_num'),
         obs_first_hosp,
         neuro_icds
       )
