@@ -171,7 +171,7 @@ runAnalysis <-
         currSiteId,
         readmissions,
         demo_processed_all,
-        obs_raw,
+        obs_first_hosp,
         neuro_icds
       ),
       first_hosp_results = run_hosps(
