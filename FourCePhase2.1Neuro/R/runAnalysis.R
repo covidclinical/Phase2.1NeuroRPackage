@@ -100,7 +100,7 @@ runAnalysis <-
       select(patient_num, time_to_first_readmission) %>%
       left_join(n_readms, by = 'patient_num')
 
-    temp_neuro <- temporal_neuro(comp_readmissions)
+    temp_neuro <- temporal_neuro(comp_readmissions, obs_raw, neuro_icds)
     obs_first_hosp <- temp_neuro$obs_first_hosp
     obs_later_hosp <- temp_neuro$obs_later_hosp
 

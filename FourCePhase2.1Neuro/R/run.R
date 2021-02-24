@@ -192,7 +192,6 @@ run_hosps <- function(mask_thres,
   cpns_results <- c(obfus_tables, reg_results, sub_reg_results)
 
   results <- list(icd_tables = icd_tables,
-                  elix_mat = elix_mat,
                   binary_results = binary_results,
                   cpns_results = cpns_results)
 }
@@ -224,7 +223,7 @@ get_elix_mat <- function(obs_raw, t1 = -365, t2 = -15, map_type = 'elixhauser'){
   index_scores_elix
 }
 
-temporal_neuro <- function(comp_readmissions){
+temporal_neuro <- function(comp_readmissions, obs_raw, neuro_icds){
   obs_first_hosp <- comp_readmissions %>%
     filter(first_out) %>%
     # days since admission the patient is out of hospital
@@ -253,8 +252,8 @@ temporal_neuro <- function(comp_readmissions){
     summarise_all(list( ~ list(.))) %>%
     right_join(first_neuro_conds, by = 'patient_num') %>%
     mutate(
-      n_new_code = map2(later_code, early_code, ~ length(setdiff(.x, .y))),
-      repeated_code = map2(later_code, early_code, intersect)
+      n_new_code = purrr::map2(later_code, early_code, ~ length(setdiff(.x, .y))),
+      repeated_code = purrr::map2(later_code, early_code, intersect)
     ) %>%
     select(- patient_num)
 
