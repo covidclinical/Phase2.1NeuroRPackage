@@ -223,7 +223,7 @@ get_elix_mat <- function(obs_raw, t1 = -365, t2 = -15, map_type = 'elixhauser'){
   index_scores_elix
 }
 
-temporal_neuro <- function(comp_readmissions, obs_raw, neuro_icds){
+temporal_neuro <- function(comp_readmissions, obs_raw, neuro_icds, readmissions){
   obs_first_hosp <- comp_readmissions %>%
     filter(first_out) %>%
     # days since admission the patient is out of hospital
@@ -243,17 +243,20 @@ temporal_neuro <- function(comp_readmissions, obs_raw, neuro_icds){
   obs_later_hosp <- comp_readmissions %>%
     filter(first_out) %>%
     # days since admission the patient is out of hospital
-    transmute(patient_num, dsa = days_since_admission) %>%
+    transmute(patient_num,
+              dsa = days_since_admission) %>%
     right_join(obs_raw, by = 'patient_num') %>%
     filter(days_since_admission >= dsa) %>%
     right_join(neuro_icds, by = c('concept_code' = 'icd')) %>%
     distinct(patient_num, later_code = concept_code) %>%
     group_by(patient_num) %>%
     summarise_all(list( ~ list(.))) %>%
+    ungroup() %>%
     right_join(first_neuro_conds, by = 'patient_num') %>%
     mutate(
       n_new_code = purrr::map2(later_code, early_code, ~ length(setdiff(.x, .y))),
-      repeated_code = purrr::map2(later_code, early_code, intersect)
+      repeated_code = purrr::map2(later_code, early_code, intersect),
+      readmitted = patient_num %in% readmissions$patient_num
     ) %>%
     select(- patient_num)
 
