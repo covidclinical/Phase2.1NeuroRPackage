@@ -65,13 +65,13 @@ run_subgroup_regs <- function(df, include_race = TRUE) {
   time_deceased_reg_elix <-
     run_regression(df, 'time_to_death', ind_vars, FALSE)
 
-  time_reg_elix <-
+  time_readmit_reg_elix <-
     run_regression(df, 'time_to_first_readmission', ind_vars, FALSE)
 
   list(
     time_severe_reg_elix = time_severe_reg_elix,
     time_deceased_reg_elix = time_deceased_reg_elix,
-    time_reg_elix = time_reg_elix
+    time_readmit_reg_elix = time_readmit_reg_elix
   )
 }
 
@@ -82,7 +82,8 @@ run_hosps <- function(mask_thres,
                       readmissions,
                       demo_processed,
                       obs_raw,
-                      neuro_icds) {
+                      neuro_icds,
+                      index_scores_elix) {
   ## -------------------------------------------------------------------------
 
   neuro_patients <- obs_raw %>%
@@ -111,29 +112,6 @@ run_hosps <- function(mask_thres,
   #     .groups = 'drop'
   #   )
 
-  ## -------------------------------------------------------------------------
-  # for elixhauser
-  comorb_names_elix <- get_quan_elix_names()
-
-  # t1: earliest time point to consider comorbidities
-  # t2: latest time point to consider comorbidities
-  # example <- t1 = -365, and t2 = -1 will map all all codes up to
-  # a year prior but before admission (admission = day 0)
-
-  comorb_elix <- map_char_elix_codes(
-    df = obs_raw,
-    comorb_names = comorb_names_elix,
-    t1 = -365,
-    t2 = -15,
-    map_type = 'elixhauser'
-  )
-
-  index_scores_elix <- comorb_elix$index_scores %>%
-    rename('elixhauser_score' = van_walraven_score)
-  # van Walraven is a modification of Elixhauser comorbidity measure
-  # doi.org/10.1097/MLR.0b013e31819432e5
-  mapped_codes_table_elix <- comorb_elix$mapped_codes_table
-  elix_mat <- cor(select(index_scores_elix, - c(patient_num, elixhauser_score)))
 
   ## -------------------------------------------------------------------------
   # optional
@@ -143,6 +121,8 @@ run_hosps <- function(mask_thres,
     left_join(demo_processed, by = 'patient_num') %>%
     mutate(concept_code = fct_reorder(concept_code, n_stay)) %>%
     left_join(neuro_icds, by = c('concept_code' = 'icd'))
+
+  comorb_names_elix <- get_quan_elix_names()
 
   icd_tables <- get_tables(
     c('no_neuro_cond', 'neuro_cond'),
@@ -173,6 +153,7 @@ run_hosps <- function(mask_thres,
     mask_thres
   ) %>%
     lapply(function(x) mutate(x, site = currSiteId))
+
 
   ## -------------------------------------------------------------------------
   reg_results <- run_regressions(scores_unique, include_race)
@@ -210,9 +191,74 @@ run_hosps <- function(mask_thres,
   ## ----save-results---------------------------------------------------------
   cpns_results <- c(obfus_tables, reg_results, sub_reg_results)
 
-  results <- list(site = currSiteId,
-                  icd_tables = icd_tables,
+  results <- list(icd_tables = icd_tables,
                   elix_mat = elix_mat,
                   binary_results = binary_results,
                   cpns_results = cpns_results)
+}
+
+get_elix_mat <- function(obs_raw, t1 = -365, t2 = -15, map_type = 'elixhauser'){
+  ## -------------------------------------------------------------------------
+  # for elixhauser
+  comorb_names_elix <- get_quan_elix_names()
+
+  # t1: earliest time point to consider comorbidities
+  # t2: latest time point to consider comorbidities
+  # example <- t1 = -365, and t2 = -1 will map all all codes up to
+  # a year prior but before admission (admission = day 0)
+
+  comorb_elix <- map_char_elix_codes(
+    df = obs_raw,
+    comorb_names = comorb_names_elix,
+    t1 = t1,
+    t2 = t2,
+    map_type = map_type
+  )
+
+  index_scores_elix <- comorb_elix$index_scores %>%
+    rename('elixhauser_score' = van_walraven_score)
+  # van Walraven is a modification of Elixhauser comorbidity measure
+  # doi.org/10.1097/MLR.0b013e31819432e5
+  # mapped_codes_table_elix <- comorb_elix$mapped_codes_table
+
+  index_scores_elix
+}
+
+temporal_neuro <- function(comp_readmissions){
+  obs_first_hosp <- comp_readmissions %>%
+    filter(first_out) %>%
+    # days since admission the patient is out of hospital
+    transmute(patient_num, dsa = days_since_admission) %>%
+    right_join(obs_raw, by = 'patient_num') %>%
+    filter(days_since_admission < dsa) %>%
+    select(-dsa)
+
+  first_neuro_conds <- obs_first_hosp %>%
+    filter(days_since_admission >= 0) %>%
+    right_join(neuro_icds, by = c('concept_code' = 'icd')) %>%
+    distinct(patient_num, early_code = concept_code) %>%
+    group_by(patient_num) %>%
+    summarise_all(list(~ list(.))) %>%
+    {.}
+
+  obs_later_hosp <- comp_readmissions %>%
+    filter(first_out) %>%
+    # days since admission the patient is out of hospital
+    transmute(patient_num, dsa = days_since_admission) %>%
+    right_join(obs_raw, by = 'patient_num') %>%
+    filter(days_since_admission >= dsa) %>%
+    right_join(neuro_icds, by = c('concept_code' = 'icd')) %>%
+    distinct(patient_num, later_code = concept_code) %>%
+    group_by(patient_num) %>%
+    summarise_all(list( ~ list(.))) %>%
+    right_join(first_neuro_conds, by = 'patient_num') %>%
+    mutate(
+      n_new_code = map2(later_code, early_code, ~ length(setdiff(.x, .y))),
+      repeated_code = map2(later_code, early_code, intersect)
+    ) %>%
+    select(- patient_num)
+
+  list(obs_first_hosp = obs_first_hosp,
+       obs_later_hosp = obs_later_hosp)
+
 }

@@ -69,6 +69,8 @@ runAnalysis <-
       neuro_icds <- neuro_icds_10
     }
 
+    #####
+    # start analysis
     comp_readmissions <- clin_raw %>%
       group_by(patient_num) %>%
       mutate(delta_hospitalized = diff(c(in_hospital[1], in_hospital))) %>%
@@ -98,13 +100,9 @@ runAnalysis <-
       select(patient_num, time_to_first_readmission) %>%
       left_join(n_readms, by = 'patient_num')
 
-    obs_first_hosp <- comp_readmissions %>%
-      filter(first_out) %>%
-      # days since admission the patient is out of hospital
-      transmute(patient_num, dsa = days_since_admission) %>%
-      right_join(obs_raw, by = 'patient_num') %>%
-      filter(days_since_admission < dsa) %>%
-      select(-dsa)
+    temp_neuro <- temporal_neuro(comp_readmissions)
+    obs_first_hosp <- temp_neuro$obs_first_hosp
+    obs_later_hosp <- temp_neuro$obs_later_hosp
 
     nstay_df <- comp_readmissions %>%
       filter(first_out) %>%
@@ -163,7 +161,13 @@ runAnalysis <-
       left_join(readmissions, by = 'patient_num') %>%
       replace_na(list(n_readmissions = 0))
 
+    index_scores_elix <- get_elix_mat(obs_first_hosp)
+    elix_mat <- cor(select(index_scores_elix, - c(patient_num, elixhauser_score)))
+
     results <- list(
+      site = currSiteId,
+      elix_mat = elix_mat,
+      obs_later_hosp = obs_later_hosp,
       all_hosp_results = run_hosps(
         mask_thres,
         blur_abs,
@@ -172,7 +176,8 @@ runAnalysis <-
         readmissions,
         demo_processed_all,
         obs_first_hosp,
-        neuro_icds
+        neuro_icds,
+        index_scores_elix
       ),
       first_hosp_results = run_hosps(
         mask_thres,
@@ -182,7 +187,8 @@ runAnalysis <-
         readmissions,
         demo_processed_first,
         obs_first_hosp,
-        neuro_icds
+        neuro_icds,
+        index_scores_elix
       )
     )
 
