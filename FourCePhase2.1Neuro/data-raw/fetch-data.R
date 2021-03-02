@@ -1,4 +1,5 @@
 library(dplyr)
+library(forcats)
 
 neuro_icds_10 <-
   readxl::read_excel('data-raw/2020-09-10_neuro-icd10_CNSvPNS.xlsx') %>%
@@ -15,4 +16,8 @@ neuro_icds_9 <- read.csv('data-raw/icd9_tab_CNSvPNS.csv') %>%
                                                      Peripheral = '2'),
          concept_type = "DIAG-ICD9")
 
-usethis::use_data(neuro_icds_9, neuro_icds_10, overwrite = TRUE)
+site_params <- googlesheets4::read_sheet(
+  'https://docs.google.com/spreadsheets/d/1epcYNd_0jCUMktOHf8mz5v651zy1JALD6PgzobrGWDY/edit?usp=sharing'
+)
+
+usethis::use_data(neuro_icds_9, neuro_icds_10, site_params, overwrite = TRUE)

@@ -15,11 +15,7 @@
 #' @importFrom forcats fct_recode fct_reorder
 #' @importFrom tidyr pivot_longer pivot_wider replace_na
 #'
-runAnalysis <-
-  function(mask_thres,
-           blur_abs,
-           icd_version = 10,
-           include_race = TRUE) {
+runAnalysis <- function() {
 
     ## make sure this instance has the latest version of the quality control and data wrangling code available
     # remotes::install_github("covidclinical/Phase2.1DataRPackage@77d32fe", subdir="FourCePhase2.1Data", upgrade=FALSE)
@@ -28,6 +24,12 @@ runAnalysis <-
     ## is mounted to the container
     data_dir <- FourCePhase2.1Data::getInputDataDirectoryName()
     currSiteId <- FourCePhase2.1Data::getSiteId()
+
+    site_specs <- dplyr::filter(site_params, siteid == currSiteId)
+    mask_thres <- site_specs$mask_thres
+    blur_abs <- site_specs$blur_abs
+    icd_version <- site_specs$icd_version
+    include_race <- site_specs$include_race
 
     ## run the quality control
     FourCePhase2.1Data::runQC(currSiteId)

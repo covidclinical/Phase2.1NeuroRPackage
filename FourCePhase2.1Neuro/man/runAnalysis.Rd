@@ -4,7 +4,7 @@
 \alias{runAnalysis}
 \title{Run analysis}
 \usage{
-runAnalysis(mask_thres, blur_abs, icd_version = 10, include_race = TRUE)
+runAnalysis()
 }
 \arguments{
 \item{mask_thres}{Obfuscation small count mask threshold (e.g. 10)}
