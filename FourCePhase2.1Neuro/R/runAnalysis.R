@@ -1,11 +1,5 @@
 #' Run analysis
 #'
-#' @param mask_thres Obfuscation small count mask threshold (e.g. 10)
-#' @param blur_abs Absolute max of obfuscation blurring range
-#' @param icd_version Version of ICD code the site uses. Must be EITHER 9 or 10.
-#' @param include_race Boolean. Whether race should be included
-#' in the regression model.
-#'
 #' @return NULL. Result files are written out to the `getProjectOutputDirectory()` directory.
 #'
 #' @keywords 4CE

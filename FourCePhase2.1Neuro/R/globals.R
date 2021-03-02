@@ -62,6 +62,8 @@ if (getRversion() >= "2.15.1") {
       'severe',
       'severe_date',
       'sex',
+      'site_params',
+      'siteid',
       'time_death',
       'time_severe',
       'time_to_death',
