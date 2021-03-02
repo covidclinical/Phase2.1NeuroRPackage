@@ -204,5 +204,5 @@ runAnalysis <- function() {
     cat('Result is saved in',
         file.path(getProjectOutputDirectory(),
                   paste0(currSiteId, '_results.rda')),
-        '\nPlease submit the result file by running submitAnalysis()')
+        '\nPlease submit the result file by running submitAnalysis()\n')
   }
