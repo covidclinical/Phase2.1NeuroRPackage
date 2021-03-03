@@ -1,5 +1,5 @@
 
-map_char_elix_codes <- function(df, comorb_names, icd_version = 10,
+map_char_elix_codes <- function(df, comorb_names, icd_version,
                                 t1, t2, map_type, truncate = TRUE) {
   df <- df %>%
     filter(days_since_admission >= t1 & days_since_admission <= t2)

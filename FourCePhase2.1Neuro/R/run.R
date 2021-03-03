@@ -196,7 +196,7 @@ run_hosps <- function(mask_thres,
                   cpns_results = cpns_results)
 }
 
-get_elix_mat <- function(obs_raw, t1 = -365, t2 = -15, map_type = 'elixhauser'){
+get_elix_mat <- function(obs_raw, icd_version, t1 = -365, t2 = -15, map_type = 'elixhauser'){
   ## -------------------------------------------------------------------------
   # for elixhauser
   comorb_names_elix <- get_quan_elix_names()
@@ -209,6 +209,7 @@ get_elix_mat <- function(obs_raw, t1 = -365, t2 = -15, map_type = 'elixhauser'){
   comorb_elix <- map_char_elix_codes(
     df = obs_raw,
     comorb_names = comorb_names_elix,
+    icd_version = icd_version,
     t1 = t1,
     t2 = t2,
     map_type = map_type

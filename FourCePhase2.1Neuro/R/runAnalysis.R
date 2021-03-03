@@ -157,7 +157,7 @@ runAnalysis <- function() {
       left_join(readmissions, by = 'patient_num') %>%
       replace_na(list(n_readmissions = 0))
 
-    index_scores_elix <- get_elix_mat(obs_first_hosp)
+    index_scores_elix <- get_elix_mat(obs_first_hosp, icd_version)
     elix_mat <- cor(select(index_scores_elix, - c(patient_num, elixhauser_score)))
 
     results <- list(
