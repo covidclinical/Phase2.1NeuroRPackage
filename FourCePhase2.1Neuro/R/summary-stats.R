@@ -16,12 +16,17 @@ count_stats <- function(df, count_var, neg_var, group_var, ...) {
               .groups = 'drop') %>%
     blur_it(c(neg_var, 'Total'), ...) %>%
     mutate(!!count_var := Total - !!neg_var) %>%
+    # mutate_at(vars(all_of(count_var), all_of(neg_var)),
+    #           ~ replace(., is.nan(.)|is.na(.), 0)) %>%
     transmute(
       !!group_var,
-      !!neg_var := concat(!!neg_var, !!neg_var/Total),
-      !!Count_var := concat(!!count_var, !!count_var/Total)) %>%
+      !!neg_var :=
+        concat(!!neg_var, if_else(Total == 0, 0, !!neg_var/Total)),
+      !!Count_var :=
+        concat(!!count_var, if_else(Total == 0, 0, !!count_var/Total))) %>%
     pivot_longer(- !!group_var) %>%
-    pivot_wider(names_from = !!group_var, values_from = value)
+    pivot_wider(names_from = !!group_var,
+                values_from = value)
 }
 
 continuous_stats <- function(df, cont_var, name, group_var,...) {
@@ -41,6 +46,8 @@ continuous_stats <- function(df, cont_var, name, group_var,...) {
               mean_var = mean(!!cont_var, na.rm = TRUE),
               sd_var = sd(!!cont_var, na.rm = TRUE),
               .groups = 'drop') %>%
+    mutate_at(vars(sd_var, median_var, mean_var),
+              ~ replace(., is.nan(.)|is.na(.), 0)) %>%
     transmute(
       !!group_var,
       !!med := concat_median(median_var, min_var, max_var),
@@ -63,10 +70,9 @@ demo_stats <- function(var, df, group_var, ...){
     mutate(prop = n_var/both_neuro,
            pres = concat(n_var, n_var/both_neuro)) %>%
     pivot_wider(- c(n_var, both_neuro), names_from = !!group_var,
-                values_from = c(n_var, prop, pres)) %>%
+                values_from = c(n_var, prop, pres),
+                values_fill = list(n_var = 0, prop = 0, pres = '0 (0%)')) %>%
     mutate(variable = paste(var, !!svar, sep = '.')) %>%
-    replace_na(list(pres_no_neuro_cond = '0 (0%)',
-                    pres_neuro_cond = '0 (0%)')) %>%
     select(- !!svar) %>%
     select(variable, everything())
 }

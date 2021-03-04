@@ -98,7 +98,8 @@ runAnalysis <- function() {
 
     temp_neuro <- temporal_neuro(comp_readmissions, obs_raw, neuro_icds, readmissions)
     obs_first_hosp <- temp_neuro$obs_first_hosp
-    obs_later_hosp <- temp_neuro$obs_later_hosp
+    propagated_codes <- temp_neuro$propagated_codes %>%
+      blur_it(c('n_early_codes', 'n_new_codes'), blur_abs, mask_thres)
 
     nstay_df <- comp_readmissions %>%
       filter(first_out) %>%
@@ -163,7 +164,7 @@ runAnalysis <- function() {
     results <- list(
       site = currSiteId,
       elix_mat = elix_mat,
-      obs_later_hosp = obs_later_hosp,
+      propagated_codes = propagated_codes,
       all_hosp_results = run_hosps(
         mask_thres,
         blur_abs,

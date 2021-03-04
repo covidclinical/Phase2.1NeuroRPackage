@@ -21,6 +21,11 @@ concat_mean <- function(mea, s, acc = 0){
   paste0(round(mea, acc), ' (', round(s, acc), ')')
 }
 
+nas_to_zeros <- function(x){
+  x[is.na(x)] <- 0
+  x
+}
+
 tidywhere <- function (fn){
   # https://github.com/r-lib/tidyselect/issues/201#issuecomment-650547846
   # where is not exported in tidyselect

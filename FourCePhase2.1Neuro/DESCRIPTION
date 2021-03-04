@@ -1,7 +1,7 @@
 Package: Phase2.1NeuroRPackage
 Type: Package
 Title: Analysis of COVID-19 patients with Neurological Conditions
-Version: 0.2.0
+Version: 0.2.1
 Authors@R: c(
     person("Trang", "Le", email = "grixor@gmail.com", role = c("aut", "cre"), comment = "https://trang.page/"),
     person("Meghan", "Hutch", email = "MeghanHutch2024@u.northwestern.edu", role = "aut", comment = "https://github.com/meghutch"))

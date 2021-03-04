@@ -8,13 +8,19 @@ run_regression <-
 
     if (binary) {
       # is dependent variable binary?
-      glm(as.formula(paste(depend_var, '~', independ_vars)),
+      output <- glm(as.formula(paste(depend_var, '~', independ_vars)),
           family = 'binomial', data = df) %>%
         summary()
+      output$deviance.resid <- NULL
+      output$na.action <- NULL
     } else {
-      lm(as.formula(paste(depend_var, '~', independ_vars)), data = df) %>%
+      output <- lm(as.formula(paste(depend_var, '~', independ_vars)), data = df) %>%
         summary()
+      output$residuals <- NULL
+      output$na.action <- NULL
     }
+
+    output
   }
 
 get_ind_vars <- function(df, include_race){
@@ -257,11 +263,43 @@ temporal_neuro <- function(comp_readmissions, obs_raw, neuro_icds, readmissions)
     mutate(
       n_new_code = purrr::map2(later_code, early_code, ~ length(setdiff(.x, .y))),
       repeated_code = purrr::map2(later_code, early_code, intersect),
-      readmitted = patient_num %in% readmissions$patient_num
+      readmitted = patient_num %in% readmissions$patient_num,
+      prop_new_code = purrr::map2(n_new_code, later_code, ~ .x/length(.y))
     ) %>%
     select(- patient_num)
 
+  new_codes <- obs_later_hosp %>%
+    filter(readmitted) %>%
+    tidyr::unnest(c(early_code, n_new_code, prop_new_code)) %>%
+    mutate_at(vars(prop_new_code),
+              ~ replace(., is.nan(.), 0)) %>%
+    group_by(early_code) %>%
+    summarise(
+      n_early_codes = n(),
+      n_new_codes = sum(n_new_code),
+      n_no_new_codes = sum(n_new_code == 0),
+      at_least_one_new_code = sum(n_new_code > 0),
+      prop_new_codes = sum(prop_new_code)
+    )
+
+  propagated_codes <- obs_later_hosp %>%
+    filter(readmitted) %>%
+    tidyr::unnest(repeated_code) %>%
+    pull(repeated_code) %>%
+    table() %>%
+    data.frame() %>%
+    `colnames<-`(c('early_code', 'repeated')) %>%
+    right_join0(new_codes, by = 'early_code') %>%
+    transmute(
+      early_code,
+      n_early_codes,
+      n_new_codes,
+      prop_new_codes,
+      prob_repeated = repeated / n_early_codes,
+      prob_at_least_one_new = at_least_one_new_code / n_early_codes
+    )
+
   list(obs_first_hosp = obs_first_hosp,
-       obs_later_hosp = obs_later_hosp)
+       propagated_codes = propagated_codes)
 
 }
