@@ -24,7 +24,7 @@ datasets are stored):
 
 ``` bash
 docker run \
-  --name 4ce \
+  --name neuro4ce \
   --volume your_path_here:/4ceData \
   --rm -it \
   dbmi/4ce-analysis:version-2.0.0 R
@@ -59,7 +59,7 @@ Finally, please submit the results to
     Briefly, to generate a new token, go to your GitHub settings -&gt;
     Developer settings -&gt; Personal access tokens -&gt; Generate.
 
-![](FourCePhase2.1Neuro/images/token.png) Finally, run:
+![](images/token.png) Finally, run:
 
 ``` r
 submitAnalysis()
