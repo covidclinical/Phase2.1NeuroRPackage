@@ -13,11 +13,13 @@ run_regression <-
         summary()
       output$deviance.resid <- NULL
       output$na.action <- NULL
+      output$terms <- NULL
     } else {
       output <- lm(as.formula(paste(depend_var, '~', independ_vars)), data = df) %>%
         summary()
       output$residuals <- NULL
       output$na.action <- NULL
+      output$terms <- NULL
     }
 
     output
