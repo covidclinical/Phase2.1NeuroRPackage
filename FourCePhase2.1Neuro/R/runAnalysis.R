@@ -203,6 +203,8 @@ runAnalysis <- function() {
     )
   )
 
+  rm(list = setdiff(ls(), c('currSiteId', 'results')))
+
   site_results <- paste0(currSiteId, '_results')
   assign(site_results, results)
   save(list = site_results,
