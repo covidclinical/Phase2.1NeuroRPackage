@@ -8,18 +8,42 @@ run_regression <-
 
     if (binary) {
       # is dependent variable binary?
-      output <- glm(as.formula(paste(depend_var, '~', independ_vars)),
-          family = 'binomial', data = df) %>%
-        summary()
-      output$deviance.resid <- NULL
-      output$na.action <- NULL
-      output$terms <- NULL
+      output <- tryCatch(
+        {glm(as.formula(paste(depend_var, '~', independ_vars)),
+              family = 'binomial', data = df) %>%
+            summary()},
+        error = function(cond) {
+          message(paste("Error when regressing", depend_var))
+          message("Original error message:")
+          message(cond)
+          message('Skipping for now...')
+          return(NULL) # return NA in case of error
+        }
+      )
+      if (!is.null(output)){
+        output$deviance.resid <- NULL
+        output$na.action <- NULL
+        output$terms <- NULL
+      }
+
     } else {
-      output <- lm(as.formula(paste(depend_var, '~', independ_vars)), data = df) %>%
-        summary()
-      output$residuals <- NULL
-      output$na.action <- NULL
-      output$terms <- NULL
+
+      output <- tryCatch(
+        {lm(as.formula(paste(depend_var, '~', independ_vars)), data = df) %>%
+            summary()},
+        error = function(cond) {
+          message(paste("Error when regressing", depend_var))
+          message("Original error message:")
+          message(cond)
+          message('Skipping for now...')
+          return(NULL) # return NA in case of error
+        }
+      )
+      if (!is.null(output)){
+        output$residuals <- NULL
+        output$na.action <- NULL
+        output$terms <- NULL
+      }
     }
 
     output
