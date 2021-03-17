@@ -17,8 +17,9 @@ runAnalysis <- function() {
   ## is mounted to the container
   data_dir <- FourCePhase2.1Data::getInputDataDirectoryName()
   currSiteId <- FourCePhase2.1Data::getSiteId()
+  site_specs <- site_params %>%
+    dplyr::filter(tolower(siteid) == tolower(currSiteId))
 
-  site_specs <- dplyr::filter(site_params, siteid == currSiteId)
   mask_thres <- site_specs$mask_thres
   blur_abs <- site_specs$blur_abs
   icd_version <- site_specs$icd_version
