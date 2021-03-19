@@ -6,7 +6,7 @@
 \title{Parameters of site-specific data.
 5 columns: siteid, mask_thres, blur_abs, icd_version, include_race.}
 \format{
-An object of class \code{tbl_df} (inherits from \code{tbl}, \code{data.frame}) with 14 rows and 5 columns.
+An object of class \code{tbl_df} (inherits from \code{tbl}, \code{data.frame}) with 15 rows and 5 columns.
 }
 \usage{
 site_params
