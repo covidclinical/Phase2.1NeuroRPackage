@@ -17,6 +17,7 @@ runAnalysis <- function() {
   ## is mounted to the container
   data_dir <- FourCePhase2.1Data::getInputDataDirectoryName()
   currSiteId <- FourCePhase2.1Data::getSiteId()
+  CurrSiteId <- toupper(currSiteId)
   site_specs <- site_params %>%
     dplyr::filter(tolower(siteid) == tolower(currSiteId))
 
@@ -177,7 +178,7 @@ runAnalysis <- function() {
     cor(select(index_scores_elix,-c(patient_num, elixhauser_score)))
 
   results <- list(
-    site = currSiteId,
+    site = CurrSiteId,
     elix_mat = elix_mat,
     propagated_codes = propagated_codes,
     all_hosp_results = run_hosps(
@@ -204,22 +205,22 @@ runAnalysis <- function() {
     )
   )
 
-  rm(list = setdiff(ls(), c('currSiteId', 'results')))
+  rm(list = setdiff(ls(), c('CurrSiteId', 'results')))
 
-  site_results <- paste0(currSiteId, '_results')
+  site_results <- paste0(CurrSiteId, '_results')
   assign(site_results, results)
   save(list = site_results,
        file = file.path(
          getProjectOutputDirectory(),
-         paste0(currSiteId, '_results.rda')
+         paste0(CurrSiteId, '_results.rda')
        ))
   save(list = site_results,
-       file = paste0(currSiteId, '_results.rda'))
+       file = paste0(CurrSiteId, '_results.rda'))
   cat(
     'Result is saved in',
     file.path(
       getProjectOutputDirectory(),
-      paste0(currSiteId, '_results.rda')
+      paste0(CurrSiteId, '_results.rda')
     ),
     '\nPlease submit the result file by running submitAnalysis()\n'
   )
