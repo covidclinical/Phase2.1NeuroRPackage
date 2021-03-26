@@ -126,14 +126,12 @@ runAnalysis <- function() {
       time_to_severe = as.numeric(severe_date - admission_date, 'days'),
       time_to_death = as.numeric(death_date - admission_date, 'days'),
       time_to_severe = if_else(
-        time_to_severe < 0 |
-          time_to_severe > n_stay,
+        time_to_severe < 0,
         NA_real_,
         time_to_severe
       ),
       time_to_death = if_else(
-        time_to_death < 0 |
-          time_to_death > n_stay,
+        time_to_death < 0,
         NA_real_,
         time_to_death
       ),
