@@ -54,7 +54,8 @@ runAnalysis <- function() {
         !is.na(death_date) & death_date < last_discharge_date,
         death_date,
         last_discharge_date
-      )
+      ),
+      total_stay = last_discharge_date - admission_date
     )
 
   obs_raw <-
@@ -123,6 +124,7 @@ runAnalysis <- function() {
   demo_processed_first <- demo_raw %>%
     left_join(nstay_df, by = 'patient_num') %>%
     mutate(
+      n_stay = if_else(is.na(n_stay), total_stay, n_stay),
       time_to_severe = as.numeric(severe_date - admission_date, 'days'),
       time_to_death = as.numeric(death_date - admission_date, 'days'),
       time_to_severe = if_else(
