@@ -1,7 +1,7 @@
 Package: Phase2.1NeuroRPackage
 Type: Package
 Title: Analysis of COVID-19 patients with Neurological Conditions
-Version: 0.2.4
+Version: 0.2.5
 Authors@R: c(
     person("Trang", "Le", email = "grixor@gmail.com", role = c("aut", "cre"), comment = "https://trang.page/"),
     person("Meghan", "Hutch", email = "MeghanHutch2024@u.northwestern.edu", role = "aut", comment = "https://github.com/meghutch"))
@@ -21,7 +21,8 @@ Imports:
   purrr (>= 0.3.4),
   remotes (>= 2.2.0),
   stringr (>= 1.4.0),
-  lubridate (>= 1.7.4)
+  lubridate (>= 1.7.4),
+  broom (>= 0.7.0)
 Suggests:
   icd,
   FourCePhase2.1Data,

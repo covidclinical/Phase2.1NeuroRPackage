@@ -5,6 +5,8 @@ if (getRversion() >= "2.15.1") {
   utils::globalVariables(
     c(
       '.',
+      '.fittedPC1',
+      '.fittedPC10',
       ':=',
       '1',
       '-1',
@@ -57,6 +59,7 @@ if (getRversion() >= "2.15.1") {
       'neuro_pt_post',
       'neuro_type',
       'patient_num',
+      'PC',
       'pns_cns',
       'pres',
       'prop',
@@ -80,6 +83,7 @@ if (getRversion() >= "2.15.1") {
       'time_to_death',
       'time_to_severe',
       'time_to_first_readmission',
+      'total_stay',
       'value',
       'van_walraven_score',
       'variable'

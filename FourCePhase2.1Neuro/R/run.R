@@ -53,7 +53,8 @@ get_ind_vars <- function(df, include_race){
   unique_cols <- apply(df, 2, function(x) length(unique(x)))
 
   ind_vars <- setdiff(
-    c('neuro_post', 'elixhauser_score', 'sex', 'age_group'),
+    c('neuro_post', 'sex', 'age_group',
+      paste0('.fittedPC', 1:10)),
     names(unique_cols)[unique_cols == 1])
 
   if (include_race)
@@ -115,7 +116,8 @@ run_hosps <- function(mask_thres,
                       demo_processed,
                       obs_raw,
                       neuro_icds,
-                      index_scores_elix) {
+                      index_scores_elix,
+                      pca_covariates) {
   ## -------------------------------------------------------------------------
 
   neuro_patients <- obs_raw %>%
@@ -174,7 +176,9 @@ run_hosps <- function(mask_thres,
              fct_recode(neuro_cond = "TRUE",
                         no_neuro_cond = "FALSE"))
 
-  scores_unique <- right_join0(index_scores_elix, demo_df, by = 'patient_num')
+  scores_unique <- index_scores_elix %>%
+    right_join0(demo_df, by = 'patient_num') %>%
+    left_join(pca_covariates, by = 'patient_num')
 
   obfus_tables <- get_tables(
     c('no_neuro_cond', 'neuro_cond'),
@@ -204,7 +208,9 @@ run_hosps <- function(mask_thres,
     replace_na(list(neuro_type = 'None')) %>%
     mutate(neuro_post = forcats::fct_relevel(neuro_type, neuro_types))
 
-  scores_unique <- right_join0(index_scores_elix, demo_df, by = 'patient_num')
+  scores_unique <- index_scores_elix %>%
+    right_join0(demo_df, by = 'patient_num') %>%
+    left_join(pca_covariates, by = 'patient_num')
 
   obfus_tables <- get_tables(
     neuro_types,

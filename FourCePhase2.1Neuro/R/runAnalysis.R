@@ -55,7 +55,8 @@ runAnalysis <- function() {
         death_date,
         last_discharge_date
       ),
-      total_stay = last_discharge_date - admission_date
+      total_stay = as.numeric(last_discharge_date - admission_date,
+                              units = "days")
     )
 
   obs_raw <-
@@ -166,20 +167,32 @@ runAnalysis <- function() {
         fct_recode(Severe = "1", `Non-severe` = "0"),
       Survival = as.factor(deceased) %>%
         fct_recode(Alive = "0", Deceased = "1"),
-      n_stay = as.numeric(last_discharge_date - admission_date,
-                          units = "days")
+      n_stay = total_stay
     ) %>%
     # left_join(days_count_min_max, by = 'patient_num') %>%
     left_join(readmissions, by = 'patient_num') %>%
     replace_na(list(n_readmissions = 0))
 
   index_scores_elix <- get_elix_mat(obs_first_hosp, icd_version)
-  elix_mat <-
-    cor(select(index_scores_elix,-c(patient_num, elixhauser_score)))
+  elix_mat <- cor(select(index_scores_elix,
+                         - c(patient_num, elixhauser_score)))
+
+  pca_fit <- index_scores_elix %>%
+    select(- c(patient_num, elixhauser_score)) %>%
+    stats::prcomp()
+
+  pca_results <- pca_fit %>%
+    broom::tidy(matrix = "eigenvalues") %>%
+    filter(PC <= 10)
+
+  pca_covariates <- pca_fit %>%
+    broom::augment(index_scores_elix) %>%
+    select(patient_num, .fittedPC1:.fittedPC10)
 
   results <- list(
     site = CurrSiteId,
     elix_mat = elix_mat,
+    pca_results = pca_results,
     propagated_codes = propagated_codes,
     all_hosp_results = run_hosps(
       mask_thres,
@@ -190,7 +203,8 @@ runAnalysis <- function() {
       demo_processed_all,
       obs_first_hosp,
       neuro_icds,
-      index_scores_elix
+      index_scores_elix,
+      pca_covariates
     ),
     first_hosp_results = run_hosps(
       mask_thres,
@@ -201,7 +215,8 @@ runAnalysis <- function() {
       demo_processed_first,
       obs_first_hosp,
       neuro_icds,
-      index_scores_elix
+      index_scores_elix,
+      pca_covariates
     )
   )
 
