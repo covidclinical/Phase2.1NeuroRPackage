@@ -174,25 +174,29 @@ runAnalysis <- function() {
     replace_na(list(n_readmissions = 0))
 
   index_scores_elix <- get_elix_mat(obs_first_hosp, icd_version)
+
   elix_mat <- cor(select(index_scores_elix,
                          - c(patient_num, elixhauser_score)))
 
-  pca_fit <- index_scores_elix %>%
-    select(- c(patient_num, elixhauser_score)) %>%
-    stats::prcomp()
+  elix_pca <- index_scores_elix %>%
+    select(- elixhauser_score) %>%
+    tibble::column_to_rownames('patient_num') %>%
+    as.matrix()
 
-  pca_results <- pca_fit %>%
-    broom::tidy(matrix = "eigenvalues") %>%
-    filter(PC <= 10)
+  lpca_fit <- logisticPCA::logisticPCA(elix_pca, k = 10, m = 0)
+  # k = 10 principal components, m is solved for
 
-  pca_covariates <- pca_fit %>%
-    broom::augment(index_scores_elix) %>%
-    select(patient_num, .fittedPC1:.fittedPC10)
+  deviance_expl <- lpca_fit$prop_deviance_expl
+
+  pca_covariates <- lpca_fit$PCs %>%
+    data.frame() %>%
+    `colnames<-`(paste0('.fittedPC', 1:10)) %>%
+    tibble::rownames_to_column('patient_num')
 
   results <- list(
     site = CurrSiteId,
     elix_mat = elix_mat,
-    pca_results = pca_results,
+    deviance_expl = deviance_expl,
     propagated_codes = propagated_codes,
     all_hosp_results = run_hosps(
       mask_thres,
