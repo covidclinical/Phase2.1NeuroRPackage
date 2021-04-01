@@ -314,22 +314,27 @@ temporal_neuro <- function(comp_readmissions, obs_raw, neuro_icds, readmissions)
       prop_new_codes = sum(prop_new_code)
     )
 
-  propagated_codes <- obs_later_hosp %>%
-    filter(readmitted) %>%
-    tidyr::unnest(repeated_code) %>%
-    pull(repeated_code) %>%
-    table() %>%
-    data.frame() %>%
-    `colnames<-`(c('early_code', 'repeated')) %>%
-    right_join0(new_codes, by = 'early_code') %>%
-    transmute(
-      early_code,
-      n_early_codes,
-      n_new_codes,
-      prop_new_codes,
-      prob_repeated = repeated / n_early_codes,
-      prob_at_least_one_new = at_least_one_new_code / n_early_codes
-    )
+  propagated_codes <- NULL
+
+  if (sum(obs_later_hosp$readmitted) > 0){
+    propagated_codes <- obs_later_hosp %>%
+      filter(readmitted) %>%
+      tidyr::unnest(repeated_code) %>%
+      pull(repeated_code) %>%
+      table() %>%
+      data.frame() %>%
+      `colnames<-`(c('early_code', 'repeated')) %>%
+      right_join0(new_codes, by = 'early_code') %>%
+      transmute(
+        early_code,
+        n_early_codes,
+        n_new_codes,
+        prop_new_codes,
+        prob_repeated = repeated / n_early_codes,
+        prob_at_least_one_new = at_least_one_new_code / n_early_codes
+      )
+  }
+
 
   list(obs_first_hosp = obs_first_hosp,
        propagated_codes = propagated_codes)
