@@ -41,10 +41,10 @@ runAnalysis <- function() {
   if (VA_site) {
     clin_raw <- clin_raw %>%
       mutate(patient_num = as.character(patient_num))
-    obs_raw <- clin_raw %>%
-      mutate(obs_raw = as.character(patient_num))
+    obs_raw <- obs_raw %>%
+      mutate(patient_num = as.character(patient_num))
     demo_raw <- demo_raw %>%
-      mutate(obs_raw = as.character(patient_num))
+      mutate(patient_num = as.character(patient_num))
     demo_raw[demo_raw %in% c("1900-01-01", "1/1/1900")] <- NA
   } else {
     clin_raw <-
