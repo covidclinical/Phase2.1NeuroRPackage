@@ -95,6 +95,7 @@ runAnalysis <- function() {
   # start analysis
   comp_readmissions <- clin_raw %>%
     group_by(patient_num) %>%
+    arrange(days_since_admission) %>%
     mutate(delta_hospitalized = diff(c(in_hospital[1], in_hospital))) %>%
     mutate(
       first_out =
