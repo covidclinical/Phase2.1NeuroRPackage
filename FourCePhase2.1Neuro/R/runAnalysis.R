@@ -36,19 +36,36 @@ runAnalysis <- function() {
 
   # count mask threshold
   # absolute max of blurring range
-  clin_raw <-
-    readr::read_csv(
-      file.path(data_dir, "LocalPatientClinicalCourse.csv"),
-      col_types = list(patient_num = readr::col_character())
-    )
-  demo_raw <-
-    readr::read_csv(
-      file.path(data_dir, "LocalPatientSummary.csv"),
-      col_types = list(patient_num = readr::col_character()),
-      na = c("1900-01-01", "1/1/1900")
-    ) %>%
-    # mutate_at(vars(which(sapply(., is.character) & names(contains('_date')))),
-    # lubridate::mdy) %>%
+  VA_site <- FALSE
+
+  if (VA_site) {
+    clin_raw <- clin_raw %>%
+      mutate(patient_num = as.character(patient_num))
+    obs_raw <- clin_raw %>%
+      mutate(obs_raw = as.character(patient_num))
+    demo_raw <- demo_raw %>%
+      mutate(obs_raw = as.character(patient_num))
+    demo_raw[demo_raw %in% c("1900-01-01", "1/1/1900")] <- NA
+  } else {
+    clin_raw <-
+      readr::read_csv(
+        file.path(data_dir, "LocalPatientClinicalCourse.csv"),
+        col_types = list(patient_num = readr::col_character())
+      )
+    obs_raw <-
+      readr::read_csv(
+        file.path(data_dir, "LocalPatientObservations.csv"),
+        col_types = list(patient_num = readr::col_character())
+      )
+    demo_raw <-
+      readr::read_csv(
+        file.path(data_dir, "LocalPatientSummary.csv"),
+        col_types = list(patient_num = readr::col_character()),
+        na = c("1900-01-01", "1/1/1900")
+      )
+  }
+
+  demo_raw <- demo_raw %>%
     mutate(across(
       ends_with("_date") &
         tidywhere(is.character),
@@ -65,11 +82,7 @@ runAnalysis <- function() {
       )
     )
 
-  obs_raw <-
-    readr::read_csv(
-      file.path(data_dir, "LocalPatientObservations.csv"),
-      col_types = list(patient_num = readr::col_character())
-    ) %>%
+  obs_raw <- obs_raw %>%
     filter(concept_type %in% c("DIAG-ICD10", "DIAG-ICD9"))
 
   if (icd_version == 9) {
@@ -184,7 +197,7 @@ runAnalysis <- function() {
     replace_na(list(n_readmissions = 0))
 
   index_scores_elix <- get_elix_mat(obs_first_hosp, icd_version) %>%
-    right_join0(select(demo_raw, patient_num), by = 'patient_num')
+    right_join0(select(demo_raw, patient_num), by = "patient_num")
 
   elix_mat <- cor(select(
     index_scores_elix,
