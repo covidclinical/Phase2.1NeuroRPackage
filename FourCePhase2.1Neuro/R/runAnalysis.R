@@ -195,7 +195,7 @@ runAnalysis <- function() {
     tibble::column_to_rownames("patient_num") %>%
     as.matrix()
 
-  lpca_fit <- logisticPCA::logisticPCA(elix_pca, k = 10, m = 0)
+  lpca_fit <- logisticPCA::logisticPCA(elix_pca, k = min(nrow(elix_pca), 10), m = 0)
   # k = 10 principal components, m is solved for
 
   deviance_expl <- lpca_fit$prop_deviance_expl
