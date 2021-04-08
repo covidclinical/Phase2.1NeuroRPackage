@@ -69,7 +69,7 @@ runAnalysis <- function() {
     mutate(
       across(
         ends_with("_date") & tidywhere(is.character),
-        lubridate::parse_date_time(orders = c("mdy", "ymd"))
+        ~ lubridate::parse_date_time(.x, orders = c("mdy", "ymd"))
       ),
       last_discharge_date = pmin(death_date, last_discharge_date, na.rm = TRUE),
       total_stay = as.numeric(last_discharge_date - admission_date,
