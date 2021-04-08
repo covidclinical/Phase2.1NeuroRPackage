@@ -44,14 +44,7 @@ runAnalysis <- function() {
     obs_raw <- obs_raw %>%
       mutate(patient_num = as.character(patient_num))
     demo_raw <- demo_raw %>%
-      mutate(
-        patient_num = as.character(patient_num),
-        across(
-          ends_with("_date") &
-            tidywhere(is.character),
-          lubridate::ymd
-        )
-      )
+      mutate(patient_num = as.character(patient_num))
     demo_raw[demo_raw %in% c("1900-01-01", "1/1/1900")] <- NA
   } else {
     clin_raw <-
@@ -69,21 +62,16 @@ runAnalysis <- function() {
         file.path(data_dir, "LocalPatientSummary.csv"),
         col_types = list(patient_num = readr::col_character()),
         na = c("1900-01-01", "1/1/1900")
-      ) %>%
-      mutate(across(
-        ends_with("_date") &
-          tidywhere(is.character),
-        lubridate::mdy
-      ))
+      )
   }
 
   demo_raw <- demo_raw %>%
     mutate(
-      last_discharge_date = if_else(
-        !is.na(death_date) & death_date < last_discharge_date,
-        death_date,
-        last_discharge_date
+      across(
+        ends_with("_date") & tidywhere(is.character),
+        lubridate::parse_date_time(orders = c("mdy", "ymd"))
       ),
+      last_discharge_date = pmin(death_date, last_discharge_date, na.rm = TRUE),
       total_stay = as.numeric(last_discharge_date - admission_date,
         units = "days"
       )
