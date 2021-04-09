@@ -72,7 +72,7 @@ runAnalysis <- function() {
         ~ lubridate::parse_date_time(.x, orders = c("mdy", "ymd"))
       ),
       last_discharge_date = pmin(death_date, last_discharge_date, na.rm = TRUE),
-      total_stay = interval(admission_date, last_discharge_date) %/% days(1)
+      total_stay = lubridate::interval(admission_date, last_discharge_date) %/% lubridate::days(1)
     )
 
   obs_raw <- obs_raw %>%
