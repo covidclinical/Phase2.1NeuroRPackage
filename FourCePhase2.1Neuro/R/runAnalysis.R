@@ -44,8 +44,13 @@ runAnalysis <- function() {
     obs_raw <- obs_raw %>%
       mutate(patient_num = as.character(patient_num))
     demo_raw <- demo_raw %>%
-      mutate(patient_num = as.character(patient_num))
-    demo_raw[demo_raw %in% c("1900-01-01", "1/1/1900")] <- NA
+      mutate(
+        patient_num = as.character(patient_num),
+        across(
+          ends_with("_date"),
+          ~ na_if(., "1900-01-01")
+        )
+      )
   } else {
     clin_raw <-
       readr::read_csv(
