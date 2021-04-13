@@ -87,6 +87,7 @@ runAnalysis <- function() {
         ends_with("_date") & tidywhere(is.character),
         ~ lubridate::parse_date_time(.x, orders = c("mdy", "ymd"))
       ),
+      death_date = if_else(death_date > lubridate::today("EST"), lubridate::NA_Date_, death_date),
       last_discharge_date = pmin(death_date, last_discharge_date, na.rm = TRUE),
       total_stay = lubridate::interval(admission_date, last_discharge_date) %/% lubridate::days(1)
     )
