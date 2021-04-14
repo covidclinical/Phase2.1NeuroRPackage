@@ -17,7 +17,7 @@ Imports:
   readr (>= 1.4.0),
   forcats (>= 0.5.0),
   tibble (>= 3.0.4),
-  dplyr (>= 1.0.3),
+  dplyr (>= 1.0.0),
   purrr (>= 0.3.4),
   remotes (>= 2.2.0),
   stringr (>= 1.4.0),
