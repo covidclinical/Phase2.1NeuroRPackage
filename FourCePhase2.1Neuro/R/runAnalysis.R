@@ -73,11 +73,10 @@ runAnalysis <- function() {
   if (CurrSiteId == "MGB") {
     clin_raw <- clin_raw %>%
       group_by(patient_num) %>%
-      arrange(days_since_admission) %>%
-      mutate(in_hospital = if_else(
-        in_hospital == 1 & lead(in_hospital) == 0 & lag(in_hospital) == 0,
-        0,
-        in_hospital
+      arrange(patient_num, days_since_admission) %>%
+      mutate(in_hospital = case_when(
+        in_hospital == 1 & lead(in_hospital) == 0 & lag(in_hospital) == 0 ~ 0,
+        TRUE ~ in_hospital
       )) %>%
       ungroup()
   }
