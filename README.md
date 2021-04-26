@@ -25,7 +25,7 @@ datasets are stored):
 ``` bash
 docker run \
   --name neuro4ce \
-  --volume your_path_here:/4ceData \
+  --volume your_path_here:/4ceData/Input \
   --rm -it \
   dbmi/4ce-analysis:version-2.0.0 R
 ```
