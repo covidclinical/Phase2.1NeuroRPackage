@@ -109,9 +109,7 @@ runAnalysis <- function() {
     mutate(delta_hospitalized = diff(c(in_hospital[1], in_hospital))) %>%
     mutate(
       first_out =
-        (
-          delta_hospitalized == -1 & !duplicated(delta_hospitalized == -1)
-        ),
+        delta_hospitalized == -1 & !duplicated(delta_hospitalized == -1),
       first_change =
         first_out |
           (delta_hospitalized == 1 &

@@ -16,6 +16,7 @@ count_stats <- function(df, count_var, neg_var, group_var, ...) {
               .groups = 'drop') %>%
     blur_it(c(neg_var, 'Total'), ...) %>%
     mutate(!!count_var := Total - !!neg_var) %>%
+    mask_it(count_var, ...) %>%
     # mutate_at(vars(all_of(count_var), all_of(neg_var)),
     #           ~ replace(., is.nan(.)|is.na(.), 0)) %>%
     transmute(
@@ -91,6 +92,15 @@ blur_it <- function(df, vars, blur_abs, mask_thres){
              !!var := ifelse(abs(!!var) < mask_thres, 0, !!var))
   }
   df
+}
+
+mask_it <- function(df, var, blur_abs, mask_thres){
+  # Obfuscate count values.
+  # If a count is less than mask_thres, set that count to 0.
+
+  var <- sym(var)
+  df %>%
+    mutate(!!var := ifelse(abs(!!var) < mask_thres, 0, !!var))
 }
 
 get_tables <- function(neuro_types,
