@@ -93,7 +93,8 @@ runAnalysis <- function() {
     )
 
   obs_raw <- obs_raw %>%
-    filter(concept_type %in% c("DIAG-ICD10", "DIAG-ICD9"))
+    filter(concept_type %in% c("DIAG-ICD10", "DIAG-ICD9")) %>%
+    mutate(concept_code = stringr::str_sub(concept_code, 1, 3))
 
   if (icd_version == 9) {
     neuro_icds <- neuro_icds_9
