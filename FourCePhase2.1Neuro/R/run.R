@@ -89,17 +89,65 @@ run_regressions <- function(df, include_race = TRUE) {
   )
 }
 
-run_subgroup_regs <- function(df, include_race = TRUE) {
+run_coxregression <- function(df, depend_var, ind_vars) {
+  if (length(unique(df[, depend_var, drop = T])) <= 1) {
+    return(NULL)
+  }
+
+  independ_vars <- paste(ind_vars, collapse = " + ")
+
+  if (depend_var == "deceased") {
+    df$delta <- df$deceased
+    df$c <- df$days_since_admission
+    df$time_to_death[is.na(df$time_to_death)] <- 1000
+    df$time <- apply(cbind(df$time_to_death, df$c), 1, min)
+  } else if (depend_var == "severe") {
+    df$delta <- df$severe
+    df$c <- df$days_since_admission
+    df$time_to_severe[is.na(df$time_to_severe)] <- 1000
+    df$time <- apply(cbind(df$time_to_severe, df$c), 1, min)
+  } else if (depend_var == "readmitted") {
+    df$delta <- df$readmitted
+    df$c <- df$days_since_admission
+    df$time_to_first_readmission[is.na(df$time_to_first_readmission)] <- 1000
+    df$time <- apply(cbind(df$time_to_first_readmission, df$c), 1, min)
+  }
+
+  output <- tryCatch(
+    {
+      paste("survival::Surv(time,delta)", "~", independ_vars) %>%
+        as.formula() %>%
+        survival::coxph(data = df) %>%
+        summary()
+    },
+    error = function(cond) {
+      message(paste("Error when regressing", depend_var))
+      message("Original error message:")
+      message(cond)
+      message("Skipping for now...")
+      return(NULL) # return NA in case of error
+    }
+  )
+  if (!is.null(output)) {
+    output$deviance.resid <- NULL
+    output$na.action <- NULL
+    output$terms <- NULL
+  }
+
+  output
+}
+
+run_coxregressions <- function(df, include_race = TRUE) {
   ind_vars <- get_ind_vars(df, include_race)
 
   time_severe_reg_elix <-
-    run_regression(df, 'time_to_severe', ind_vars, FALSE)
+    run_coxregression(df, "severe", ind_vars)
 
   time_deceased_reg_elix <-
-    run_regression(df, 'time_to_death', ind_vars, FALSE)
+    run_coxregression(df, "deceased", ind_vars)
 
   time_readmit_reg_elix <-
-    run_regression(df, 'time_to_first_readmission', ind_vars, FALSE)
+    run_coxregression(df, "readmitted", ind_vars)
 
   list(
     time_severe_reg_elix = time_severe_reg_elix,
@@ -193,7 +241,7 @@ run_hosps <- function(mask_thres,
 
   ## -------------------------------------------------------------------------
   reg_results <- run_regressions(scores_unique, include_race)
-  sub_reg_results <- run_subgroup_regs(scores_unique, include_race)
+  sub_reg_results <- run_coxregressions(scores_unique, include_race)
 
   ## ----save-results---------------------------------------------------------
   binary_results <- c(obfus_tables, reg_results, sub_reg_results)
@@ -224,7 +272,7 @@ run_hosps <- function(mask_thres,
 
   ## -------------------------------------------------------------------------
   reg_results <- run_regressions(scores_unique, include_race)
-  sub_reg_results <- run_subgroup_regs(scores_unique, include_race)
+  sub_reg_results <- run_coxregressions(scores_unique, include_race)
 
   ## ----save-results---------------------------------------------------------
   cpns_results <- c(obfus_tables, reg_results, sub_reg_results)

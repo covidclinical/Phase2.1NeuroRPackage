@@ -10,6 +10,9 @@
 #' @importFrom tidyr pivot_longer pivot_wider replace_na
 #'
 runAnalysis <- function() {
+  select <- dplyr::select
+  filter <- dplyr::filter
+
   ## make sure this instance has the latest version of the quality control and data wrangling code available
   # remotes::install_github("covidclinical/Phase2.1DataRPackage@77d32fe", subdir="FourCePhase2.1Data", upgrade=FALSE)
 
