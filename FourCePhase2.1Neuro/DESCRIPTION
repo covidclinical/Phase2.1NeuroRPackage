@@ -1,7 +1,7 @@
 Package: Phase2.1NeuroRPackage
 Type: Package
 Title: Analysis of COVID-19 patients with Neurological Conditions
-Version: 0.2.7
+Version: 0.3.0
 Authors@R: c(
     person("Trang", "Le", email = "grixor@gmail.com", role = c("aut", "cre"), comment = "https://trang.page/"),
     person("Meghan", "Hutch", email = "MeghanHutch2024@u.northwestern.edu", role = "aut", comment = "https://github.com/meghutch"))
@@ -23,7 +23,8 @@ Imports:
   stringr (>= 1.4.0),
   lubridate (>= 1.7.4),
   broom (>= 0.7.0),
-  logisticPCA (>= 0.2.0)
+  logisticPCA (>= 0.2.0),
+  survival (>= 3.2)
 Suggests:
   icd,
   FourCePhase2.1Data,
