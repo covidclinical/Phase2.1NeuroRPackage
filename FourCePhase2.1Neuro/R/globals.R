@@ -78,6 +78,7 @@ if (getRversion() >= "2.15.1") {
       'sex',
       'site_params',
       'siteid',
+      'time',
       'time_death',
       'time_severe',
       'time_to_death',
