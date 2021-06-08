@@ -26,6 +26,10 @@ nas_to_zeros <- function(x){
   x
 }
 
+subtract_days <- function(x0, x1){
+  lubridate::interval(x0, x1) %/% lubridate::days(1)
+}
+
 tidywhere <- function (fn){
   # https://github.com/r-lib/tidyselect/issues/201#issuecomment-650547846
   # where is not exported in tidyselect
