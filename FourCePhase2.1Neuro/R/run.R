@@ -73,28 +73,10 @@ get_ind_vars <- function(df, include_race) {
 run_regressions <- function(df, include_race = TRUE) {
   ind_vars <- get_ind_vars(df, include_race)
 
-  severe_reg_elix <-
-    run_regression(df, "severe", ind_vars, TRUE)
-
-  deceased_reg_elix <-
-    run_regression(df, "deceased", ind_vars, TRUE)
-
-  n_stay_reg_elix <-
-    run_regression(df, "n_stay", ind_vars, FALSE)
-
   n_readmit_reg_elix <-
     run_regression(df, "n_readmissions", ind_vars, FALSE)
 
-  readmit_reg_elix <-
-    run_regression(df, "readmitted", ind_vars, TRUE)
-
-  list(
-    n_stay_reg_elix = n_stay_reg_elix,
-    severe_reg_elix = severe_reg_elix,
-    deceased_reg_elix = deceased_reg_elix,
-    n_readmit_reg_elix = n_readmit_reg_elix,
-    readmit_reg_elix = readmit_reg_elix
-  )
+  list(n_readmit_reg_elix = n_readmit_reg_elix)
 }
 
 run_coxregression <- function(df, depend_var, ind_vars) {
@@ -106,18 +88,52 @@ run_coxregression <- function(df, depend_var, ind_vars) {
   surv_df <- df[, ind_vars]
   if (depend_var == "deceased") {
     surv_df <- df %>%
-      replace_na(list(time_to_death = 1000)) %>%
-      mutate(time = pmin(time_to_death, days_since_admission)) %>%
+      mutate(time = if_else(is.na(time_to_death), total_stay, time_to_death)) %>%
       select(delta = deceased, time, all_of(ind_vars))
   } else if (depend_var == "severe") {
     surv_df <- df %>%
-      replace_na(list(time_to_severe = 1000)) %>%
-      mutate(time = pmin(time_to_severe, days_since_admission)) %>%
+      mutate(time = case_when(
+        is.na(time_to_severe) & is.na(time_to_death) ~ total_stay,
+        is.na(time_to_severe) ~ time_to_death,
+        TRUE ~ time_to_severe),
+        delta = severe | deceased) %>%
       select(delta = severe, time, all_of(ind_vars))
   } else if (depend_var == "readmitted") {
     surv_df <- df %>%
-      replace_na(list(time_to_first_readmission = 1000)) %>%
-      mutate(time = pmin(time_to_first_readmission, days_since_admission)) %>%
+      mutate(time = if_else(is.na(time_to_first_readmission),
+        total_stay,
+        time_to_first_readmission
+      )) %>%
+      select(delta = readmitted, time, all_of(ind_vars))
+  } else if (depend_var == "total_stay") {
+    surv_df <- df %>%
+      mutate(
+        time = case_when(
+          is.na(total_stay) & is.na(time_to_death) ~ days_since_admission,
+          is.na(total_stay) ~ time_to_death,
+          TRUE ~ total_stay
+        ),
+        delta = case_when(
+          is.na(total_stay) & is.na(time_to_death) ~ 3,
+          is.na(total_stay) ~ 2,
+          TRUE ~ 1
+        )
+      ) %>%
+      select(delta = readmitted, time, all_of(ind_vars))
+  } else if (depend_var == "n_stay") {
+    surv_df <- df %>%
+      mutate(
+        time = case_when(
+          is.na(n_stay) & is.na(time_to_death) ~ days_since_admission,
+          is.na(n_stay) ~ time_to_death,
+          TRUE ~ n_stay
+        ),
+        delta = case_when(
+          is.na(n_stay) & is.na(time_to_death) ~ 3,
+          is.na(n_stay) ~ 2,
+          TRUE ~ 1
+        )
+      ) %>%
       select(delta = readmitted, time, all_of(ind_vars))
   }
 
@@ -168,10 +184,18 @@ run_coxregressions <- function(df, include_race = TRUE) {
   time_readmit_reg_elix <-
     run_coxregression(df, "readmitted", ind_vars)
 
+  total_stay_reg_elix <-
+    run_coxregression(df, "total_stay", ind_vars)
+
+  n_stay_reg_elix <-
+    run_coxregression(df, "n_stay", ind_vars)
+
   list(
     time_severe_reg_elix = time_severe_reg_elix,
     time_deceased_reg_elix = time_deceased_reg_elix,
-    time_readmit_reg_elix = time_readmit_reg_elix
+    time_readmit_reg_elix = time_readmit_reg_elix,
+    total_stay_reg_elix = total_stay_reg_elix,
+    n_stay_reg_elix = n_stay_reg_elix
   )
 }
 

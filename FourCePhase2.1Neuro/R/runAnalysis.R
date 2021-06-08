@@ -92,7 +92,7 @@ runAnalysis <- function() {
       ),
       death_date = if_else(death_date > lubridate::today("EST"), lubridate::NA_Date_, death_date),
       last_discharge_date = pmin(death_date, last_discharge_date, na.rm = TRUE),
-      total_stay = lubridate::interval(admission_date, last_discharge_date) %/% lubridate::days(1)
+      total_stay = subtract_days(admission_date, last_discharge_date)
     )
 
   obs_raw <- obs_raw %>%
@@ -109,7 +109,7 @@ runAnalysis <- function() {
   # start analysis
   comp_readmissions <- clin_raw %>%
     group_by(patient_num) %>%
-    arrange(days_since_admission) %>%
+    arrange(days_since_admission, .by_group = TRUE) %>%
     mutate(delta_hospitalized = diff(c(in_hospital[1], in_hospital))) %>%
     mutate(
       first_out =
@@ -156,26 +156,14 @@ runAnalysis <- function() {
 
   nstay_df <- comp_readmissions %>%
     filter(first_out) %>%
-    select(patient_num, n_stay = days_since_admission)
+    transmute(patient_num, n_stay = days_since_admission - 1)
 
   demo_processed_first <- demo_raw %>%
-    left_join(nstay_df, by = "patient_num") %>%
     mutate(
-      n_stay = if_else(is.na(n_stay), as.integer(total_stay), as.integer(n_stay)),
-      time_to_severe = as.numeric(severe_date - admission_date, "days"),
-      time_to_death = as.numeric(death_date - admission_date, "days"),
-      time_to_severe = if_else(
-        time_to_severe < 0,
-        NA_real_,
-        time_to_severe
-      ),
-      time_to_death = if_else(
-        time_to_death < 0,
-        NA_real_,
-        time_to_death
-      ),
-      severe = if_else(is.na(time_to_severe), 0, 1),
-      deceased = if_else(is.na(time_to_death), 0, 1),
+      time_to_severe = subtract_days(admission_date, severe_date),
+      time_to_severe = if_else(time_to_severe < 0, NA_real_, time_to_severe),
+      time_to_death = subtract_days(admission_date, death_date),
+      time_to_death = if_else(time_to_death < 0, NA_real_, time_to_death),
       readmitted = patient_num %in% readmissions$patient_num,
       sex = as.factor(sex),
       race = as.factor(race),
@@ -185,25 +173,9 @@ runAnalysis <- function() {
       Survival = as.factor(deceased) %>%
         fct_recode(Alive = "0", Deceased = "1")
     ) %>%
-    # left_join(days_count_min_max, by = 'patient_num') %>%
-    left_join(readmissions, by = "patient_num") %>%
-    replace_na(list(n_readmissions = 0))
-
-  demo_processed_all <- demo_raw %>%
+    left_join(nstay_df, by = "patient_num") %>%
     mutate(
-      time_to_severe = severe_date - admission_date,
-      time_to_severe = ifelse(time_to_severe < 0, NA, time_to_severe),
-      time_to_death = death_date - admission_date,
-      time_to_death = ifelse(time_to_death < 0, NA, time_to_death),
-      readmitted = patient_num %in% readmissions$patient_num,
-      sex = as.factor(sex),
-      race = as.factor(race),
-      age_group = as.factor(age_group),
-      Severity = as.factor(severe) %>%
-        fct_recode(Severe = "1", `Non-severe` = "0"),
-      Survival = as.factor(deceased) %>%
-        fct_recode(Alive = "0", Deceased = "1"),
-      n_stay = total_stay
+      n_stay = if_else(is.na(n_stay), total_stay, n_stay)
     ) %>%
     # left_join(days_count_min_max, by = 'patient_num') %>%
     left_join(readmissions, by = "patient_num") %>%
@@ -237,18 +209,6 @@ runAnalysis <- function() {
     elix_mat = elix_mat,
     deviance_expl = deviance_expl,
     propagated_codes = propagated_codes,
-    all_hosp_results = run_hosps(
-      mask_thres,
-      blur_abs,
-      include_race,
-      currSiteId,
-      readmissions,
-      demo_processed_all,
-      obs_first_hosp,
-      neuro_icds,
-      index_scores_elix,
-      pca_covariates
-    ),
     first_hosp_results = run_hosps(
       mask_thres,
       blur_abs,
