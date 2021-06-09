@@ -175,7 +175,7 @@ runAnalysis <- function() {
     ) %>%
     left_join(nstay_df, by = "patient_num") %>%
     mutate(
-      n_stay = if_else(is.na(n_stay), total_stay, n_stay)
+      n_stay = if_else(is.na(n_stay), as.numeric(total_stay), as.numeric(n_stay))
     ) %>%
     # left_join(days_count_min_max, by = 'patient_num') %>%
     left_join(readmissions, by = "patient_num") %>%
