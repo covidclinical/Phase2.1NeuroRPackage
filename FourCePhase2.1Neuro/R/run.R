@@ -101,8 +101,8 @@ run_coxregression <- function(df, depend_var, ind_vars) {
   } else if (depend_var == "readmitted") {
     surv_df <- df %>%
       mutate(time = if_else(is.na(time_to_first_readmission),
-        total_stay,
-        time_to_first_readmission
+        as.numeric(total_stay),
+        as.numeric(time_to_first_readmission)
       )) %>%
       select(delta = readmitted, time, all_of(ind_vars))
   } else if (depend_var == "total_stay") {
