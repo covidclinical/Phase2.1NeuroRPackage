@@ -85,15 +85,17 @@ run_coxregression <- function(df, depend_var, ind_vars) {
   }
 
   independ_vars <- paste(ind_vars, collapse = " + ")
-  surv_df <- df[, ind_vars]
+  df <- df %>%
+    mutate(across(starts_with("time_to"), as.numeric))
+
   if (depend_var == "deceased") {
     surv_df <- df %>%
-      mutate(time = if_else(is.na(time_to_death), total_stay, time_to_death)) %>%
+      mutate(time = if_else(is.na(time_to_death), time_to_last_discharge, time_to_death)) %>%
       select(delta = deceased, time, all_of(ind_vars))
   } else if (depend_var == "severe") {
     surv_df <- df %>%
       mutate(time = case_when(
-        is.na(time_to_severe) & is.na(time_to_death) ~ total_stay,
+        is.na(time_to_severe) & is.na(time_to_death) ~ time_to_last_discharge,
         is.na(time_to_severe) ~ time_to_death,
         TRUE ~ time_to_severe),
         delta = severe | deceased) %>%
@@ -101,36 +103,36 @@ run_coxregression <- function(df, depend_var, ind_vars) {
   } else if (depend_var == "readmitted") {
     surv_df <- df %>%
       mutate(time = if_else(is.na(time_to_first_readmission),
-        as.numeric(total_stay),
+        as.numeric(time_to_last_discharge),
         as.numeric(time_to_first_readmission)
       )) %>%
       select(delta = readmitted, time, all_of(ind_vars))
-  } else if (depend_var == "total_stay") {
+  } else if (depend_var == "time_to_last_discharge") {
     surv_df <- df %>%
       mutate(
         time = case_when(
-          is.na(total_stay) & is.na(time_to_death) ~ days_since_admission,
-          is.na(total_stay) ~ time_to_death,
-          TRUE ~ total_stay
+          is.na(time_to_last_discharge) & is.na(time_to_death) ~ days_since_admission,
+          is.na(time_to_last_discharge) ~ time_to_death,
+          TRUE ~ time_to_last_discharge
         ),
         delta = case_when(
-          is.na(total_stay) & is.na(time_to_death) ~ 3,
-          is.na(total_stay) ~ 2,
+          is.na(time_to_last_discharge) & is.na(time_to_death) ~ 3,
+          is.na(time_to_last_discharge) ~ 2,
           TRUE ~ 1
         )
       ) %>%
       select(delta = readmitted, time, all_of(ind_vars))
-  } else if (depend_var == "n_stay") {
+  } else if (depend_var == "time_to_first_discharge") {
     surv_df <- df %>%
       mutate(
         time = case_when(
-          is.na(n_stay) & is.na(time_to_death) ~ days_since_admission,
-          is.na(n_stay) ~ time_to_death,
-          TRUE ~ n_stay
+          is.na(time_to_first_discharge) & is.na(time_to_death) ~ days_since_admission,
+          is.na(time_to_first_discharge) ~ time_to_death,
+          TRUE ~ time_to_first_discharge
         ),
         delta = case_when(
-          is.na(n_stay) & is.na(time_to_death) ~ 3,
-          is.na(n_stay) ~ 2,
+          is.na(time_to_first_discharge) & is.na(time_to_death) ~ 3,
+          is.na(time_to_first_discharge) ~ 2,
           TRUE ~ 1
         )
       ) %>%
@@ -184,18 +186,18 @@ run_coxregressions <- function(df, include_race = TRUE) {
   time_readmit_reg_elix <-
     run_coxregression(df, "readmitted", ind_vars)
 
-  total_stay_reg_elix <-
-    run_coxregression(df, "total_stay", ind_vars)
+  time_last_discharge_reg_elix <-
+    run_coxregression(df, "time_to_last_discharge", ind_vars)
 
-  n_stay_reg_elix <-
-    run_coxregression(df, "n_stay", ind_vars)
+  time_first_discharge_reg_elix <-
+    run_coxregression(df, "time_to_first_discharge", ind_vars)
 
   list(
     time_severe_reg_elix = time_severe_reg_elix,
     time_deceased_reg_elix = time_deceased_reg_elix,
     time_readmit_reg_elix = time_readmit_reg_elix,
-    total_stay_reg_elix = total_stay_reg_elix,
-    n_stay_reg_elix = n_stay_reg_elix
+    time_last_discharge_reg_elix = time_last_discharge_reg_elix,
+    time_first_discharge_reg_elix = time_first_discharge_reg_elix
   )
 }
 
@@ -246,7 +248,7 @@ run_hosps <- function(mask_thres,
     select(patient_num, concept_code) %>%
     bind_rows(non_neuro_patients) %>%
     left_join(demo_processed, by = "patient_num") %>%
-    mutate(concept_code = fct_reorder(concept_code, n_stay)) %>%
+    mutate(concept_code = fct_reorder(concept_code, time_to_first_discharge)) %>%
     left_join(neuro_icds, by = c("concept_code" = "icd"))
 
   comorb_names_elix <- get_quan_elix_names()

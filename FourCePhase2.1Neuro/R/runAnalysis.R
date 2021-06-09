@@ -92,7 +92,7 @@ runAnalysis <- function() {
       ),
       death_date = if_else(death_date > lubridate::today("EST"), lubridate::NA_Date_, death_date),
       last_discharge_date = pmin(death_date, last_discharge_date, na.rm = TRUE),
-      total_stay = subtract_days(admission_date, last_discharge_date)
+      time_to_last_discharge = subtract_days(admission_date, last_discharge_date)
     )
 
   obs_raw <- obs_raw %>%
@@ -156,7 +156,7 @@ runAnalysis <- function() {
 
   nstay_df <- comp_readmissions %>%
     filter(first_out) %>%
-    transmute(patient_num, n_stay = days_since_admission - 1)
+    transmute(patient_num, time_to_first_discharge = days_since_admission - 1)
 
   demo_processed_first <- demo_raw %>%
     mutate(
@@ -174,9 +174,11 @@ runAnalysis <- function() {
         fct_recode(Alive = "0", Deceased = "1")
     ) %>%
     left_join(nstay_df, by = "patient_num") %>%
-    mutate(
-      n_stay = if_else(is.na(n_stay), as.numeric(total_stay), as.numeric(n_stay))
-    ) %>%
+    # mutate(
+    #   time_to_first_discharge = if_else(is.na(time_to_first_discharge),
+    #     time_to_last_discharge, time_to_first_discharge
+    #   )
+    # ) %>%
     # left_join(days_count_min_max, by = 'patient_num') %>%
     left_join(readmissions, by = "patient_num") %>%
     replace_na(list(n_readmissions = 0))

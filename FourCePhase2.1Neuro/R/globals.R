@@ -51,7 +51,7 @@ if (getRversion() >= "2.15.1") {
       'n_no_neuro_cond',
       'n_patients',
       'n_readmissions',
-      'n_stay',
+      'time_to_first_discharge',
       'n_var',
       'neuro_post',
       'neuro_icds_10',
@@ -84,7 +84,7 @@ if (getRversion() >= "2.15.1") {
       'time_to_death',
       'time_to_severe',
       'time_to_first_readmission',
-      'total_stay',
+      'time_to_last_discharge',
       'value',
       'van_walraven_score',
       'variable'

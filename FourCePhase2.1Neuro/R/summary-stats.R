@@ -131,7 +131,8 @@ get_tables <- function(neuro_types,
   suppressWarnings(
   other_obfus_table <-
     bind_rows(
-      continuous_stats(demo_df, 'n_stay', 'length of stay', group_var),
+      continuous_stats(demo_df, 'time_to_first_discharge', 'time to first discharge', group_var),
+      continuous_stats(demo_df, 'time_to_last_discharge', 'time to last discharge', group_var),
       count_stats(demo_df, 'severe', 'Nonsevere', group_var, blur_abs, mask_thres),
       continuous_stats(demo_df, 'time_to_severe', 'time to severe', group_var),
       count_stats(demo_df, 'deceased', 'Alive', group_var, blur_abs, mask_thres),
