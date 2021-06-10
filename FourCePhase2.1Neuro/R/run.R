@@ -86,7 +86,8 @@ run_coxregression <- function(df, depend_var, ind_vars) {
 
   independ_vars <- paste(ind_vars, collapse = " + ")
   df <- df %>%
-    mutate(across(starts_with("time_to"), as.numeric))
+    mutate(across(starts_with("time_to"), as.numeric),
+           days_since_admission = as.numeric(days_since_admission))
 
   if (depend_var == "deceased") {
     surv_df <- df %>%
