@@ -232,7 +232,7 @@ runAnalysis <- function() {
   save(
     list = site_results,
     file = file.path(
-      getProjectOutputDirectory(),
+      FourCePhase2.1Data::get4ceRootDirectoryName(),
       paste0(CurrSiteId, "_results.rda")
     )
   )
@@ -243,7 +243,7 @@ runAnalysis <- function() {
   cat(
     "Result is saved in",
     file.path(
-      getProjectOutputDirectory(),
+      FourCePhase2.1Data::get4ceRootDirectoryName(),
       paste0(CurrSiteId, "_results.rda")
     ),
     "\nPlease submit the result file by running submitAnalysis()\n"
