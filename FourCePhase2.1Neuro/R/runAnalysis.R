@@ -158,6 +158,13 @@ runAnalysis <- function() {
     filter(first_out) %>%
     transmute(patient_num, time_to_first_discharge = days_since_admission - 1)
 
+  pre_neuro <- obs_raw %>%
+    filter(days_since_admission >= -365 & days_since_admission <= -15) %>%
+    right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
+    filter(!is.na(patient_num)) %>%
+    distinct(patient_num, concept_code) %>%
+    count(patient_num, name = "pre_admission_neuro")
+
   demo_processed_first <- demo_raw %>%
     mutate(
       time_to_severe = subtract_days(admission_date, severe_date),
@@ -181,6 +188,7 @@ runAnalysis <- function() {
     # ) %>%
     # left_join(days_count_min_max, by = 'patient_num') %>%
     left_join(readmissions, by = "patient_num") %>%
+    left_join(pre_neuro, by = "patient_num") %>%
     replace_na(list(n_readmissions = 0))
 
   index_scores_elix <- get_elix_mat(obs_first_hosp, icd_version) %>%

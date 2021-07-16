@@ -58,7 +58,7 @@ get_ind_vars <- function(df, include_race) {
 
   ind_vars <- setdiff(
     c(
-      "neuro_post", "sex", "age_group",
+      "neuro_post", "sex", "age_group", "pre_admission_neuro",
       paste0(".fittedPC", 1:10)
     ),
     names(unique_cols)[unique_cols == 1]
@@ -377,10 +377,7 @@ temporal_neuro <- function(comp_readmissions, obs_raw, neuro_icds, readmissions)
     right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
     distinct(patient_num, early_code = concept_code) %>%
     group_by(patient_num) %>%
-    summarise_all(list(~ list(.))) %>%
-    {
-      .
-    }
+    summarise_all(list(~ list(.)))
 
   obs_later_hosp <- comp_readmissions %>%
     filter(first_out) %>%
