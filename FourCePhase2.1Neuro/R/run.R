@@ -100,7 +100,7 @@ run_coxregression <- function(df, depend_var, ind_vars) {
         is.na(time_to_severe) ~ time_to_death,
         TRUE ~ time_to_severe),
         delta = severe | deceased) %>%
-      select(delta = severe, time, all_of(ind_vars))
+      select(delta, time, all_of(ind_vars))
   } else if (depend_var == "readmitted") {
     surv_df <- df %>%
       mutate(time = if_else(is.na(time_to_first_readmission),
@@ -122,7 +122,7 @@ run_coxregression <- function(df, depend_var, ind_vars) {
           TRUE ~ 1
         )
       ) %>%
-      select(delta = readmitted, time, all_of(ind_vars))
+      select(delta, time, all_of(ind_vars))
   } else if (depend_var == "time_to_first_discharge") {
     surv_df <- df %>%
       mutate(
@@ -137,7 +137,7 @@ run_coxregression <- function(df, depend_var, ind_vars) {
           TRUE ~ 1
         )
       ) %>%
-      select(delta = readmitted, time, all_of(ind_vars))
+      select(delta, time, all_of(ind_vars))
   }
 
   output <- tryCatch(
