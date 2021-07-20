@@ -162,7 +162,7 @@ runAnalysis <- function() {
     filter(days_since_admission >= -365 & days_since_admission <= -15) %>%
     right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
     filter(!is.na(patient_num)) %>%
-    distinct(patient_num, concept_code) %>%
+    # distinct(patient_num, concept_code) %>%
     count(patient_num, name = "pre_admission_neuro")
 
   demo_processed_first <- demo_raw %>%
