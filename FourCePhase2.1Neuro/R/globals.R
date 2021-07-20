@@ -24,6 +24,7 @@ if (getRversion() >= "2.15.1") {
       'days_since_admission',
       'death_date',
       'deceased',
+      'delta',
       'delta_hospitalized',
       'diagnosis_code',
       'early_code',

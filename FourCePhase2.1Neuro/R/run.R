@@ -58,7 +58,8 @@ get_ind_vars <- function(df, include_race) {
 
   ind_vars <- setdiff(
     c(
-      "neuro_post", "sex", "age_group", "pre_admission_neuro",
+      "neuro_post", "sex", "age_group",
+      "pre_admission_cns", "pre_admission_pns",
       paste0(".fittedPC", 1:10)
     ),
     names(unique_cols)[unique_cols == 1]
