@@ -163,11 +163,15 @@ runAnalysis <- function() {
     filter(days_since_admission >= -365 & days_since_admission <= -15) %>%
     right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
     filter(!is.na(patient_num)) %>%
+    distinct(patient_num, pns_cns, concept_code) %>%
     count(patient_num, pns_cns) %>%
     mutate(value = log(n + 1)) %>%
     pivot_wider(id_cols = patient_num, names_from = pns_cns, values_from = value, values_fill = 0) %>%
     rename(pre_admission_cns = Central,
            pre_admission_pns = Peripheral)
+
+  pre_cns_summary <- summary(pre_neuro$pre_admission_cns)
+  pre_pns_summary <- summary(pre_neuro$pre_admission_pns)
 
   demo_processed_first <- demo_raw %>%
     mutate(
@@ -245,6 +249,10 @@ runAnalysis <- function() {
   # remove categories with 0 patients
   results$mapped_codes_table_obfus <- mapped_codes_table_obfus %>%
     filter(!n_patients == 0)
+
+  # add the pre cns and pns summaries
+  results$pre_cns_summary <- pre_cns_summary
+  results$pre_pns_summary <- pre_pns_summary
 
   rm(list = setdiff(ls(), c("CurrSiteId", "results")))
 
