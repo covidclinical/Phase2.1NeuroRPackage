@@ -90,66 +90,63 @@ run_coxregression <- function(df, depend_var, ind_vars) {
     mutate(across(starts_with("time_to"), as.numeric),
            days_since_admission = as.numeric(days_since_admission))
 
+
   if (depend_var == "deceased") {
     surv_df <- df %>%
-      mutate(time = if_else(is.na(time_to_death), time_to_last_discharge, time_to_death)) %>%
-      select(delta = deceased, time, all_of(ind_vars))
+      mutate(time = if_else(deceased == 1, time_to_death, time_to_last_discharge),
+             time = if_else((is.na(time_to_last_discharge) & deceased == 0), days_since_admission, time),
+             delta = deceased) %>%
+      select(patient_num, delta, time, all_of(ind_vars))
   } else if (depend_var == "severe") {
     surv_df <- df %>%
-      mutate(time = case_when(
-        is.na(time_to_severe) & is.na(time_to_death) ~ time_to_last_discharge,
-        is.na(time_to_severe) ~ time_to_death,
-        TRUE ~ time_to_severe),
-        delta = severe | deceased) %>%
-      select(delta, time, all_of(ind_vars))
-  } else if (depend_var == "readmitted") {
-    surv_df <- df %>%
-      mutate(time = if_else(is.na(time_to_first_readmission),
-        as.numeric(time_to_last_discharge),
-        as.numeric(time_to_first_readmission)
-      )) %>%
-      select(delta = readmitted, time, all_of(ind_vars))
+      mutate(
+        time = if_else(severe == 1 | deceased == 1, pmin(time_to_severe, time_to_death, na.rm = TRUE), time_to_last_discharge),
+        time = if_else(is.na(time), days_since_admission, time),
+        delta = if_else(severe == 1 | deceased == 1, 1, 0)) %>%
+      select(patient_num, delta, time, all_of(ind_vars))
   } else if (depend_var == "time_to_last_discharge") {
     surv_df <- df %>%
       mutate(
         time = case_when(
+          time_to_death <= time_to_last_discharge ~ time_to_death,
           is.na(time_to_last_discharge) & is.na(time_to_death) ~ days_since_admission,
-          is.na(time_to_last_discharge) ~ time_to_death,
-          TRUE ~ time_to_last_discharge
-        ),
+          TRUE ~ time_to_last_discharge),
         delta = case_when(
-          is.na(time_to_last_discharge) & is.na(time_to_death) ~ 3,
-          is.na(time_to_last_discharge) ~ 2,
-          TRUE ~ 1
+          is.na(time_to_last_discharge) & is.na(time_to_death) ~ 3, #patients still in hospital
+          time_to_death <= time_to_last_discharge ~ 2, #censored patients (died)
+          TRUE ~ 1 #patients who are discharged
         )
       ) %>%
-      select(delta, time, all_of(ind_vars))
+      mutate(delta = as.factor(delta)) %>%
+      select(patient_num, delta, time, all_of(ind_vars))
   } else if (depend_var == "time_to_first_discharge") {
     surv_df <- df %>%
       mutate(
         time = case_when(
+          time_to_death <= time_to_first_discharge ~ time_to_death,
           is.na(time_to_first_discharge) & is.na(time_to_death) ~ days_since_admission,
-          is.na(time_to_first_discharge) ~ time_to_death,
-          TRUE ~ time_to_first_discharge
-        ),
+          TRUE ~ time_to_first_discharge),
         delta = case_when(
-          is.na(time_to_first_discharge) & is.na(time_to_death) ~ 3,
-          is.na(time_to_first_discharge) ~ 2,
-          TRUE ~ 1
+          is.na(time_to_first_discharge) & is.na(time_to_death) ~ 3, #patients still in hospital
+          time_to_death <= time_to_first_discharge ~ 2, #censored patients (died)
+          TRUE ~ 1 #patients who are discharged
         )
       ) %>%
-      select(delta, time, all_of(ind_vars))
+      mutate(delta = as.factor(delta)) %>%
+      select(patient_num, delta, time, all_of(ind_vars))
   }
+
+
 
   output <- tryCatch(
     {
       list(
-        cox = "survival::Surv(time, delta)" %>%
+        cox = "survival::Surv(time, delta==1)" %>%
           paste("~", independ_vars) %>%
           as.formula() %>%
-          survival::coxph(data = surv_df) %>%
+          survival::coxph(data = surv_df, id = patient_num) %>%
           summary(),
-        life = "survival::Surv(time, delta) ~ neuro_post" %>%
+        life = "survival::Surv(time, delta==1) ~ neuro_post" %>%
           as.formula() %>%
           survival::survfit(data = surv_df) %>%
           summary()
@@ -167,11 +164,24 @@ run_coxregression <- function(df, depend_var, ind_vars) {
     output$cox$deviance.resid <- NULL
     output$cox$na.action <- NULL
     output$cox$terms <- NULL
+    output$cox$residuals <- NULL
+    output$cox$n <- NULL
+    output$cox$nevent <- NULL
+    output$cox$y <- NULL
+    output$cox$linear.predictors <- NULL
     output$life$n.censor <- NULL
     output$life$n <- NULL
-    output$life$n.event <- 0
-    output$life$n.risk <- 0
+    output$life$n.event <- NULL
+    output$life$n.risk <- NULL
   }
+
+  # calculate baseline hazard
+  fit <- coxph(as.formula(paste("Surv(time,delta==1)", '~', independ_vars)), data = surv_df, id = patient_num)
+  baseline_haz <- basehaz(fit,centered = T)
+  survcurve <- exp(-baseline_haz$hazard)
+
+  output$baseline_haz <- baseline_haz
+  output$survcurve <- survcurve
 
   output
 }
@@ -185,9 +195,6 @@ run_coxregressions <- function(df, include_race = TRUE) {
   time_deceased_reg_elix <-
     run_coxregression(df, "deceased", ind_vars)
 
-  time_readmit_reg_elix <-
-    run_coxregression(df, "readmitted", ind_vars)
-
   time_last_discharge_reg_elix <-
     run_coxregression(df, "time_to_last_discharge", ind_vars)
 
@@ -197,7 +204,6 @@ run_coxregressions <- function(df, include_race = TRUE) {
   list(
     time_severe_reg_elix = time_severe_reg_elix,
     time_deceased_reg_elix = time_deceased_reg_elix,
-    time_readmit_reg_elix = time_readmit_reg_elix,
     time_last_discharge_reg_elix = time_last_discharge_reg_elix,
     time_first_discharge_reg_elix = time_first_discharge_reg_elix
   )
@@ -229,6 +235,38 @@ run_hosps <- function(mask_thres,
     ))
 
   neuro_pt_post <- unique(neuro_patients$patient_num)
+
+  # calculate mean and median number of codes per patient and neuro_type status
+  n_codes_per_patient <- neuro_patients %>%
+    group_by(patient_num, neuro_type) %>%
+    mutate(count = n()) %>%
+    ungroup() %>%
+    distinct(patient_num, neuro_type, count) %>%
+    select(neuro_type, count) %>%
+    group_by(neuro_type) %>%
+    mutate(mean_count = mean(count),
+           median_count = median(count),
+           iqr25 = quantile(count, probs = 0.25),
+           iqr75 = quantile(count, probs = 0.75)) %>%
+    ungroup() %>%
+    distinct(neuro_type, mean_count, iqr25, median_count, iqr75)
+
+  # calculate mean and median number of cns or pns codes for patients with both
+  n_both_codes_per_patient <- neuro_patients %>%
+    filter(neuro_type == "Both") %>%
+    group_by(patient_num, pns_cns) %>%
+    mutate(count = n()) %>%
+    ungroup() %>%
+    distinct(patient_num, pns_cns, count) %>%
+    select(pns_cns, count) %>%
+    group_by(pns_cns) %>%
+    mutate(mean_count = mean(count),
+           median_count = median(count),
+           iqr25 = quantile(count, probs = 0.25),
+           iqr75 = quantile(count, probs = 0.75)) %>%
+    ungroup() %>%
+    distinct(pns_cns, mean_count, iqr25, median_count, iqr75)
+
 
   non_neuro_patients <-
     data.frame(patient_num = setdiff(demo_processed$patient_num, neuro_pt_post)) %>%
@@ -332,7 +370,9 @@ run_hosps <- function(mask_thres,
   results <- list(
     icd_tables = icd_tables,
     binary_results = binary_results,
-    cpns_results = cpns_results
+    cpns_results = cpns_results,
+    n_codes_per_patient = n_codes_per_patient,
+    n_both_codes_per_patient = n_both_codes_per_patient
   )
 }
 
@@ -359,9 +399,13 @@ get_elix_mat <- function(obs_raw, icd_version, t1 = -365, t2 = -15, map_type = "
     rename("elixhauser_score" = van_walraven_score)
   # van Walraven is a modification of Elixhauser comorbidity measure
   # doi.org/10.1097/MLR.0b013e31819432e5
-  # mapped_codes_table_elix <- comorb_elix$mapped_codes_table
 
-  index_scores_elix
+  mapped_codes_table <- comorb_elix$mapped_codes_table
+
+  comorb_list <- list(index_scores_elix = index_scores_elix,
+                      mapped_codes_table = mapped_codes_table)
+
+  return(comorb_list)
 }
 
 temporal_neuro <- function(comp_readmissions, obs_raw, neuro_icds, readmissions) {
