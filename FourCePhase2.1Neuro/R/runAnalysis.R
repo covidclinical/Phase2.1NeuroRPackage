@@ -163,7 +163,6 @@ runAnalysis <- function() {
     filter(days_since_admission >= -365 & days_since_admission <= -15) %>%
     right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
     filter(!is.na(patient_num)) %>%
-    distinct(patient_num, pns_cns, concept_code) %>%
     count(patient_num, pns_cns) %>%
     mutate(value = log(n + 1)) %>%
     pivot_wider(id_cols = patient_num, names_from = pns_cns, values_from = value, values_fill = 0) %>%
