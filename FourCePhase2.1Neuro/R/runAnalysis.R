@@ -10,6 +10,8 @@
 #' @importFrom tidyr pivot_longer pivot_wider replace_na
 #'
 runAnalysis <- function() {
+  set.seed(446) # for obfuscation posterity
+
   select <- dplyr::select
   filter <- dplyr::filter
 
@@ -157,7 +159,6 @@ runAnalysis <- function() {
   nstay_df <- comp_readmissions %>%
     filter(first_out) %>%
     transmute(patient_num, time_to_first_discharge = days_since_admission - 1)
-
   pre_neuro <- obs_raw %>%
     filter(days_since_admission >= -365 & days_since_admission <= -15) %>%
     right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
@@ -184,18 +185,19 @@ runAnalysis <- function() {
         fct_recode(Alive = "0", Deceased = "1")
     ) %>%
     left_join(nstay_df, by = "patient_num") %>%
-    # mutate(
-    #   time_to_first_discharge = if_else(is.na(time_to_first_discharge),
-    #     time_to_last_discharge, time_to_first_discharge
-    #   )
-    # ) %>%
-    # left_join(days_count_min_max, by = 'patient_num') %>%
     left_join(readmissions, by = "patient_num") %>%
     left_join(pre_neuro, by = "patient_num") %>%
-    replace_na(list(n_readmissions = 0))
+    replace_na(list(n_readmissions = 0,
+                    pre_admission_cns = 0,
+                    pre_admission_pns = 0))
 
-  index_scores_elix <- get_elix_mat(obs_first_hosp, icd_version) %>%
+  comorb_list <- get_elix_mat(obs_first_hosp, icd_version)
+
+  index_scores_elix <- comorb_list$index_scores_elix
+  index_scores_elix <- index_scores_elix %>%
     right_join0(select(demo_raw, patient_num), by = "patient_num")
+
+  mapped_codes_table <- comorb_list$mapped_codes_table
 
   elix_mat <- cor(select(
     index_scores_elix,
@@ -235,6 +237,14 @@ runAnalysis <- function() {
       pca_covariates
     )
   )
+
+  ## obfuscate comorbidity table
+  mapped_codes_table_obfus <- blur_it(mapped_codes_table, vars = 'n_patients', blur_abs, mask_thres)
+  mapped_codes_table_obfus <- mask_it(mapped_codes_table_obfus, var = 'n_patients', blur_abs, mask_thres)
+
+  # remove categories with 0 patients
+  results$mapped_codes_table_obfus <- mapped_codes_table_obfus %>%
+    filter(!n_patients == 0)
 
   rm(list = setdiff(ls(), c("CurrSiteId", "results")))
 
