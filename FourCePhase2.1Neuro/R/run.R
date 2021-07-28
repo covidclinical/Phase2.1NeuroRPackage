@@ -177,7 +177,7 @@ run_coxregression <- function(df, depend_var, ind_vars) {
 
   # calculate baseline hazard
   fit <- survival::coxph(as.formula(paste("survival::Surv(time,delta==1)", '~', independ_vars)), data = surv_df, id = patient_num)
-  baseline_haz <- basehaz(fit,centered = T)
+  baseline_haz <- survival::basehaz(fit,centered = T)
   survcurve <- exp(-baseline_haz$hazard)
 
   output$baseline_haz <- baseline_haz
