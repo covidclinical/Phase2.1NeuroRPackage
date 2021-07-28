@@ -138,6 +138,8 @@ get_tables <- function(neuro_types,
       count_stats(demo_df, 'deceased', 'Alive', group_var, blur_abs, mask_thres),
       continuous_stats(demo_df, 'time_to_death', 'time to death', group_var),
       continuous_stats(demo_df, 'n_readmissions', 'number of readmissions', group_var),
+      continuous_stats(demo_df, 'pre_admission_cns', 'pre admission cns', group_var),
+      continuous_stats(demo_df, 'pre_admission_pns', 'pre admission pns', group_var),
       continuous_stats(
         demo_df,
         'time_to_first_readmission',
