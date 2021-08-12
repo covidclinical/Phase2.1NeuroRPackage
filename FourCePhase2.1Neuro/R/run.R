@@ -86,6 +86,7 @@ run_coxregression <- function(df, depend_var, ind_vars) {
   }
 
   independ_vars <- paste(ind_vars, collapse = " + ")
+
   df <- df %>%
     mutate(across(starts_with("time_to"), as.numeric),
            days_since_admission = as.numeric(days_since_admission))
@@ -136,8 +137,6 @@ run_coxregression <- function(df, depend_var, ind_vars) {
       select(patient_num, delta, time, all_of(ind_vars))
   }
 
-
-
   output <- tryCatch(
     {
       list(
@@ -175,16 +174,65 @@ run_coxregression <- function(df, depend_var, ind_vars) {
     output$life$n.risk <- NULL
   }
 
-  # calculate baseline hazard
-  fit <- survival::coxph(as.formula(paste("survival::Surv(time,delta==1)", '~', independ_vars)), data = surv_df, id = patient_num)
-  baseline_haz <- survival::basehaz(fit,centered = T)
-  survcurve <- exp(-baseline_haz$hazard)
+  # average survival functions
+  avg_survival_func <- tryCatch(
+    {
+      # [,-1] removes the intercept term
+      covariate=model.matrix(as.formula(paste("Surv(time,delta==1)", '~',
+                                              independ_vars)),data=surv_df )[,-1]
 
-  output$baseline_haz <- baseline_haz
-  output$survcurve <- survcurve
+      data=data.frame( cbind('time'=surv_df$time,'delta'=surv_df$delta,covariate) )
 
-  output
+      # (-1:2) removes time and delta columns
+      cox=coxph(as.formula(paste("Surv(time,delta==1)", '~',
+                                 paste(colnames(data[,-(1:2)]),collapse='+'))),data=data)
+
+      # calculate mean per covariate
+      meancovariate=apply(covariate,2,mean)
+
+      # create a new data frame to create indicators for neuro status
+      # each neuro status will have the same mean for each covariate
+      newdata=data.frame(rbind(c(0,0,0,0,meancovariate[-(1:3)]),
+                               c(0,1,0,0,meancovariate[-(1:3)]),
+                               c(0,0,1,0,meancovariate[-(1:3)]),
+                               c(0,0,0,1,meancovariate[-(1:3)])))
+      colnames(newdata)[1] <- "neuro_postNone"
+      colnames(newdata)[2] <- "neuro_postPeripheral"
+      colnames(newdata)[3] <- "neuro_postCentral"
+      colnames(newdata)[4] <- "neuro_postBoth"
+      survout=survfit(cox,newdata)
+
+      cox <- cox %>% summary()
+
+      average_survival =list("cox"=cox,"survf"=survout)
+
+    },
+    error = function(cond) {
+      message(paste("Error when regressing", depend_var))
+      message("Original error message:")
+      message(cond)
+      message('Skipping for now...')
+      return(NULL) # return NA in case of error
+    }
+  )
+  if (!is.null(average_survival)){
+    average_survival$cox$deviance.resid <- NULL
+    average_survival$cox$na.action <- NULL
+    average_survival$cox$terms <- NULL
+    average_survival$cox$residuals <- NULL
+    average_survival$cox$n <- NULL
+    average_survival$cox$nevent <- NULL
+    average_survival$cox$y <- NULL
+    average_survival$cox$linear.predictors <- NULL
+    average_survival$survf$n <- NULL
+    average_survival$survf$n.event <- NULL
+    average_survival$survf$n.risk <- NULL
+  }
+
+  output$average_survival <- average_survival
+
 }
+
 
 run_coxregressions <- function(df, include_race = TRUE) {
   ind_vars <- get_ind_vars(df, include_race)
