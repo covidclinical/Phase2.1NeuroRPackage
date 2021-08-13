@@ -299,6 +299,13 @@ runAnalysis <- function() {
       paste0(CurrSiteId, "_results.rda")
     )
   )
+  save(
+    list = output_log,
+    file = file.path(
+      FourCePhase2.1Data::get4ceRootDirectoryName(),
+      paste0(CurrSiteId, "_output_log.txt")
+    )
+  )
   cat(
     "Result is saved in",
     file.path(
