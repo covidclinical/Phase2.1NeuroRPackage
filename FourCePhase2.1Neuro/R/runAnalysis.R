@@ -246,8 +246,7 @@ runAnalysis <- function() {
   # #sink(file = file.path(data_dir, paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
   # #sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
   # sink(output_log, type="message")
-
-  sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")))
+  sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
   sink(stdout(), type = "message")
 
   results <- list(
