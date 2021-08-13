@@ -239,6 +239,8 @@ run_coxregression <- function(df, depend_var, ind_vars) {
 run_coxregressions <- function(df, include_race = TRUE) {
   ind_vars <- get_ind_vars(df, include_race)
 
+  sink(type = "message")
+
   time_severe_reg_elix <-
     run_coxregression(df, "severe", ind_vars)
 
