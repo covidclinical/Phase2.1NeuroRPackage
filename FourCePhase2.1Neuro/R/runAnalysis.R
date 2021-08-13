@@ -245,7 +245,7 @@ runAnalysis <- function() {
     tibble::rownames_to_column("patient_num")
 
   # output_log <- file(paste0(getProjectOutputDirectory(), "output_log.txt"), open = "wt") # File name of output log
-  sink(output_log, type="message")
+  sink(type="message")
 
   results <- list(
     site = CurrSiteId,
