@@ -281,7 +281,7 @@ runAnalysis <- function() {
   results$pre_cns_summary <- pre_cns_summary
   results$pre_pns_summary <- pre_pns_summary
 
-  rm(list = setdiff(ls(), c("CurrSiteId", "results")))
+  rm(list = setdiff(ls(), c("CurrSiteId", "results", "output_log")))
 
   site_results <- paste0(CurrSiteId, "_results")
   assign(site_results, results)
@@ -289,7 +289,7 @@ runAnalysis <- function() {
     list = site_results,
     file = file.path(
       getProjectOutputDirectory(),
-      paste0(CurrSiteId, "_results.rda")
+      paste0(CurrSiteId, "_results.rda"),
     )
   )
   save(
@@ -300,10 +300,17 @@ runAnalysis <- function() {
     )
   )
   save(
-    list = output_log,
+    list = site_results,
     file = file.path(
       FourCePhase2.1Data::get4ceRootDirectoryName(),
-      paste0(CurrSiteId, "_output_log.txt")
+      paste0(CurrSiteId, "output_log.txt")
+    )
+  )
+  save(
+    list = site_results,
+    file = file.path(
+      FourCePhase2.1Data::get4ceRootDirectoryName(),
+      paste0(CurrSiteId, "output_log")
     )
   )
   cat(
