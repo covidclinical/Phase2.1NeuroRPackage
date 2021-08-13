@@ -242,6 +242,7 @@ runAnalysis <- function() {
     `colnames<-`(paste0(".fittedPC", 1:10)) %>%
     tibble::rownames_to_column("patient_num")
 
+  # this is not working :/
   output_log <- file(paste0(getProjectOutputDirectory(), "output_log.txt"), open = "wt") # File name of output log
   # #sink(file = file.path(data_dir, paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
   # #sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
@@ -281,7 +282,7 @@ runAnalysis <- function() {
   results$pre_pns_summary <- pre_pns_summary
 
 
-  rm(list = setdiff(ls(), c("CurrSiteId", "results")))
+  #rm(list = setdiff(ls(), c("CurrSiteId", "results")))
 
   site_results <- paste0(CurrSiteId, "_results")
   assign(site_results, results)
