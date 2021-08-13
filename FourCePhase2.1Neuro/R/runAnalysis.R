@@ -40,6 +40,8 @@ runAnalysis <- function() {
 
   FourCePhase2.1Data::runQC(currSiteId)
 
+  sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")))
+
   # count mask threshold
   # absolute max of blurring range
   VA_site <- FALSE
@@ -247,9 +249,7 @@ runAnalysis <- function() {
   # #sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
   # sink(output_log, type="message")
 
-  #sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")))
-  #sink(stdout(), type = "message")
-
+  sink(stdout(), type = "message")
   results <- list(
     site = CurrSiteId,
     elix_mat = elix_mat,
@@ -269,9 +269,6 @@ runAnalysis <- function() {
     )
   )
 
-  # ## reset message sink and close the file connection
-  #sink()
-
   ## obfuscate comorbidity table
   mapped_codes_table_obfus <- blur_it(mapped_codes_table, vars = 'n_patients', blur_abs, mask_thres)
   mapped_codes_table_obfus <- mask_it(mapped_codes_table_obfus, var = 'n_patients', blur_abs, mask_thres)
@@ -284,6 +281,8 @@ runAnalysis <- function() {
   results$pre_cns_summary <- pre_cns_summary
   results$pre_pns_summary <- pre_pns_summary
 
+  # ## reset message sink and close the file connection
+  sink()
 
   rm(list = setdiff(ls(), c("CurrSiteId", "results")))
 
