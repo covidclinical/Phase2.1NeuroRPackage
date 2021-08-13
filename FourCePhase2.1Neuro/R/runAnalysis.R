@@ -242,8 +242,9 @@ runAnalysis <- function() {
     `colnames<-`(paste0(".fittedPC", 1:10)) %>%
     tibble::rownames_to_column("patient_num")
 
-  output_log <- file(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt"), open = "wt") # File name of output log
-  sink(output_log, type="message")
+  output_log <- file(paste(getProjectOutputDirectory(), "output_log.txt"), open = "wt") # File name of output log
+  #sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
+  sink(file = output_log, type="message")
 
   results <- list(
     site = CurrSiteId,
