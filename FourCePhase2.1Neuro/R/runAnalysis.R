@@ -308,7 +308,5 @@ runAnalysis <- function() {
     ),
     "\nPlease submit the result file by running submitAnalysis()\n"
   )
-  # ## reset message sink and close the file connection
-  sink()
 
 }
