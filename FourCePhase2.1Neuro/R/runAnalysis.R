@@ -40,8 +40,6 @@ runAnalysis <- function() {
 
   FourCePhase2.1Data::runQC(currSiteId)
 
-  sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")))
-
   # count mask threshold
   # absolute max of blurring range
   VA_site <- FALSE
@@ -249,7 +247,9 @@ runAnalysis <- function() {
   # #sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
   # sink(output_log, type="message")
 
+  sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")))
   sink(stdout(), type = "message")
+
   results <- list(
     site = CurrSiteId,
     elix_mat = elix_mat,
@@ -281,8 +281,6 @@ runAnalysis <- function() {
   results$pre_cns_summary <- pre_cns_summary
   results$pre_pns_summary <- pre_pns_summary
 
-  # ## reset message sink and close the file connection
-  sink()
 
   rm(list = setdiff(ls(), c("CurrSiteId", "results")))
 
@@ -310,4 +308,7 @@ runAnalysis <- function() {
     ),
     "\nPlease submit the result file by running submitAnalysis()\n"
   )
+  # ## reset message sink and close the file connection
+  sink()
+
 }
