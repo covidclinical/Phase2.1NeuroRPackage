@@ -242,10 +242,13 @@ runAnalysis <- function() {
     `colnames<-`(paste0(".fittedPC", 1:10)) %>%
     tibble::rownames_to_column("patient_num")
 
-  output_log <- file(paste0(getProjectOutputDirectory(), "output_log.txt"), open = "wt") # File name of output log
-  #sink(file = file.path(data_dir, paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
-  #sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
-  sink(output_log, type="message")
+  # output_log <- file(paste0(getProjectOutputDirectory(), "output_log.txt"), open = "wt") # File name of output log
+  # #sink(file = file.path(data_dir, paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
+  # #sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
+  # sink(output_log, type="message")
+
+  sink(file = file.path(data_dir, paste0(currSiteId, "_log.txt")))
+  sink(stdout(), type = "message")
 
   results <- list(
     site = CurrSiteId,
@@ -267,9 +270,7 @@ runAnalysis <- function() {
   )
 
   # ## reset message sink and close the file connection
-  sink(type="message")
-
-  closeAllConnections() # Close connection to log file
+  sink()
 
   ## obfuscate comorbidity table
   mapped_codes_table_obfus <- blur_it(mapped_codes_table, vars = 'n_patients', blur_abs, mask_thres)
