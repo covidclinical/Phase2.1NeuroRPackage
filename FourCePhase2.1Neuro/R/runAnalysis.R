@@ -247,8 +247,8 @@ runAnalysis <- function() {
   # #sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
   # sink(output_log, type="message")
 
-  sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")))
-  sink(stdout(), type = "message")
+  #sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")))
+  #sink(stdout(), type = "message")
 
   results <- list(
     site = CurrSiteId,
@@ -270,7 +270,7 @@ runAnalysis <- function() {
   )
 
   # ## reset message sink and close the file connection
-  sink()
+  #sink()
 
   ## obfuscate comorbidity table
   mapped_codes_table_obfus <- blur_it(mapped_codes_table, vars = 'n_patients', blur_abs, mask_thres)
