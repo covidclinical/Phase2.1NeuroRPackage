@@ -10,6 +10,7 @@
 #' @importFrom tidyr pivot_longer pivot_wider replace_na
 #'
 runAnalysis <- function() {
+
   set.seed(446) # for obfuscation posterity
 
   select <- dplyr::select
@@ -36,6 +37,8 @@ runAnalysis <- function() {
     "https://github.com/covidclinical/Phase2.1DataRPackage",
     subdir = "FourCePhase2.1Data", upgrade = FALSE
   )
+
+  sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
 
   FourCePhase2.1Data::runQC(currSiteId)
 
@@ -241,8 +244,8 @@ runAnalysis <- function() {
     `colnames<-`(paste0(".fittedPC", 1:10)) %>%
     tibble::rownames_to_column("patient_num")
 
-  output_log <- file(paste0(getProjectOutputDirectory(), "output_log.txt"), open = "wt") # File name of output log
-  sink(output_log, type="message")
+  # output_log <- file(paste0(getProjectOutputDirectory(), "output_log.txt"), open = "wt") # File name of output log
+  # sink(output_log, type="message")
 
   results <- list(
     site = CurrSiteId,
@@ -263,11 +266,11 @@ runAnalysis <- function() {
     )
   )
 
-  ## reset message sink and close the file connection
-  sink(type="message")
-  close(output_log)
-
-  closeAllConnections() # Close connection to log file
+  # ## reset message sink and close the file connection
+  # sink(type="message")
+  # close(output_log)
+  #
+  # closeAllConnections() # Close connection to log file
 
   ## obfuscate comorbidity table
   mapped_codes_table_obfus <- blur_it(mapped_codes_table, vars = 'n_patients', blur_abs, mask_thres)
@@ -281,7 +284,10 @@ runAnalysis <- function() {
   results$pre_cns_summary <- pre_cns_summary
   results$pre_pns_summary <- pre_pns_summary
 
-  rm(list = setdiff(ls(), c("CurrSiteId", "results", "output_log")))
+
+  sink(file=NULL)
+
+  rm(list = setdiff(ls(), c("CurrSiteId", "results")))
 
   site_results <- paste0(CurrSiteId, "_results")
   assign(site_results, results)
