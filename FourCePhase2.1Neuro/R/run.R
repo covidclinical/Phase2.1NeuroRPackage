@@ -58,7 +58,7 @@ get_ind_vars <- function(df, include_race) {
 
   ind_vars <- setdiff(
     c(
-      "neuro_post", "sex", "age_group",
+      "neuro_post", "sex", "age_group_rf",
       "pre_admission_cns", "pre_admission_pns",
       paste0(".fittedPC", 1:10)
     ),
@@ -66,7 +66,7 @@ get_ind_vars <- function(df, include_race) {
   )
 
   if (include_race) {
-    ind_vars <- c(ind_vars, "race")
+    ind_vars <- c(ind_vars, "race_rf")
   }
   ind_vars
 }
@@ -175,7 +175,7 @@ run_coxregression <- function(df, depend_var, ind_vars) {
   }
 
   # average survival functions
-  avg_survival_func <- tryCatch(
+  average_survival <- tryCatch(
     {
       # [,-1] removes the intercept term
       covariate=model.matrix(as.formula(paste("Surv(time,delta==1)", '~',
@@ -230,6 +230,8 @@ run_coxregression <- function(df, depend_var, ind_vars) {
   }
 
   output$average_survival <- average_survival
+
+  return(output)
 
 }
 

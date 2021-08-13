@@ -192,7 +192,26 @@ runAnalysis <- function() {
     left_join(pre_neuro, by = "patient_num") %>%
     replace_na(list(n_readmissions = 0,
                     pre_admission_cns = 0,
-                    pre_admission_pns = 0))
+                    pre_admission_pns = 0)) %>%
+    # refactor age and race variables
+    mutate(age_group_rf = if_else(age_group == "00to02" |
+                                    age_group == "03to05" |
+                                    age_group == "06to11" |
+                                    age_group == "12to17" |
+                                  age_group == "18to25" |
+                                  age_group == "26to49",
+                                  "00to49", "50to80plus"),
+           # age_group_rf = if_else(age_group == "18to25" |
+           #                          age_group == "26to49",
+           #                          "18to49", age_group_rf),
+           # age_group_rf = if_else(age_group == "50to69" |
+           #                          age_group == "70to79" |
+           #                          age_group == "80plus",
+           #                        "50to80plus", age_group_rf),
+           race_rf = if_else(race == "white", "white", "NA"),
+           race_rf = if_else(race == "black", "black", race_rf),
+           race_rf = if_else(race == "asian" | race == "hawaiian_pacific_islander", "asian_hawaiian_pacific_islander", race_rf),
+           race_rf = if_else(race == "american_indian" | race == "other", "other", race_rf))
 
   comorb_list <- get_elix_mat(obs_first_hosp, icd_version)
 
@@ -222,6 +241,9 @@ runAnalysis <- function() {
     `colnames<-`(paste0(".fittedPC", 1:10)) %>%
     tibble::rownames_to_column("patient_num")
 
+  output_log <- file("output_log.txt", open = "wt") # File name of output log
+  sink(output_log, type="message")
+
   results <- list(
     site = CurrSiteId,
     elix_mat = elix_mat,
@@ -240,6 +262,12 @@ runAnalysis <- function() {
       pca_covariates
     )
   )
+
+  ## reset message sink and close the file connection
+  sink(type="message")
+  close(output_log)
+
+  closeAllConnections() # Close connection to log file
 
   ## obfuscate comorbidity table
   mapped_codes_table_obfus <- blur_it(mapped_codes_table, vars = 'n_patients', blur_abs, mask_thres)
@@ -269,6 +297,13 @@ runAnalysis <- function() {
     file = file.path(
       FourCePhase2.1Data::get4ceRootDirectoryName(),
       paste0(CurrSiteId, "_results.rda")
+    )
+  )
+  save(
+    list = output_log,
+    file = file.path(
+      FourCePhase2.1Data::get4ceRootDirectoryName(),
+      paste0(CurrSiteId, "_output_log.txt")
     )
   )
   cat(
