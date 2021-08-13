@@ -289,13 +289,6 @@ runAnalysis <- function() {
     list = site_results,
     file = file.path(
       getProjectOutputDirectory(),
-      paste0(CurrSiteId, "_results.rda"),
-    )
-  )
-  save(
-    list = site_results,
-    file = file.path(
-      FourCePhase2.1Data::get4ceRootDirectoryName(),
       paste0(CurrSiteId, "_results.rda")
     )
   )
@@ -303,14 +296,7 @@ runAnalysis <- function() {
     list = site_results,
     file = file.path(
       FourCePhase2.1Data::get4ceRootDirectoryName(),
-      paste0(CurrSiteId, "output_log.txt")
-    )
-  )
-  save(
-    list = site_results,
-    file = file.path(
-      FourCePhase2.1Data::get4ceRootDirectoryName(),
-      paste0(CurrSiteId, "output_log")
+      paste0(CurrSiteId, "_results.rda")
     )
   )
   cat(
