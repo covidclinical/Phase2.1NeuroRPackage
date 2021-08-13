@@ -245,7 +245,7 @@ runAnalysis <- function() {
     tibble::rownames_to_column("patient_num")
 
   # output_log <- file(paste0(getProjectOutputDirectory(), "output_log.txt"), open = "wt") # File name of output log
-  # sink(output_log, type="message")
+  sink(output_log, type="message")
 
   results <- list(
     site = CurrSiteId,
@@ -267,7 +267,7 @@ runAnalysis <- function() {
   )
 
   # ## reset message sink and close the file connection
-  # sink(type="message")
+  sink(type="message")
   # close(output_log)
   #
   # closeAllConnections() # Close connection to log file
