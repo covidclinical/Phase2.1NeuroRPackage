@@ -188,7 +188,7 @@ run_coxregression <- function(df, depend_var, ind_vars) {
       data=data.frame( cbind('time'=surv_df$time,'delta'=surv_df$delta,covariate) )
 
       # (-1:2) removes time and delta columns
-      cox=coxph(as.formula(paste("survival::Surv(time,delta==1)", '~',
+      cox=survival::coxph(as.formula(paste("survival::Surv(time,delta==1)", '~',
                                  paste(colnames(data[,-(1:2)]),collapse='+'))),data=data)
 
       # calculate mean per covariate
