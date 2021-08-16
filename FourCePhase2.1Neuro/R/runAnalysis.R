@@ -243,12 +243,12 @@ runAnalysis <- function() {
     tibble::rownames_to_column("patient_num")
 
   # this is not working :/
-  output_log <- file(paste0(getProjectOutputDirectory(), "output_log.txt"), open = "wt") # File name of output log
+  #output_log <- file(paste0(getProjectOutputDirectory(), "output_log.txt"), open = "wt") # File name of output log
   # #sink(file = file.path(data_dir, paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
   # #sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
   # sink(output_log, type="message")
   #sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
-  sink(output_log, type = "message")
+  #sink(output_log, type = "message")
 
   results <- list(
     site = CurrSiteId,
@@ -309,5 +309,5 @@ runAnalysis <- function() {
     "\nPlease submit the result file by running submitAnalysis()\n"
   )
 
-  sink()
+  #sink()
 }
