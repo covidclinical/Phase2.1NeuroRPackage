@@ -182,13 +182,13 @@ run_coxregression <- function(df, depend_var, ind_vars) {
   average_survival <- tryCatch(
     {
       # [,-1] removes the intercept term
-      covariate=model.matrix(as.formula(paste("Surv(time,delta==1)", '~',
+      covariate=model.matrix(as.formula(paste("survival::Surv(time,delta==1)", '~',
                                               independ_vars)),data=surv_df )[,-1]
 
       data=data.frame( cbind('time'=surv_df$time,'delta'=surv_df$delta,covariate) )
 
       # (-1:2) removes time and delta columns
-      cox=coxph(as.formula(paste("Surv(time,delta==1)", '~',
+      cox=coxph(as.formula(paste("survival::Surv(time,delta==1)", '~',
                                  paste(colnames(data[,-(1:2)]),collapse='+'))),data=data)
 
       # calculate mean per covariate
