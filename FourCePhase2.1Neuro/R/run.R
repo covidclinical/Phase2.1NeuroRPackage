@@ -177,6 +177,7 @@ run_coxregression <- function(df, depend_var, ind_vars) {
     output$life$n.risk <- NULL
   }
 
+  if (length(unique(surv_df$neuro_post))) {
   # average survival functions
   average_survival <- tryCatch(
     {
@@ -233,8 +234,9 @@ run_coxregression <- function(df, depend_var, ind_vars) {
   }
 
   output$average_survival <- average_survival
+  }
 
-  return(output)
+    return(output)
 
 }
 
