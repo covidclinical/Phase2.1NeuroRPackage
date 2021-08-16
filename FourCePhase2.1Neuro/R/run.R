@@ -204,7 +204,7 @@ run_coxregression <- function(df, depend_var, ind_vars) {
       colnames(newdata)[2] <- "neuro_postPeripheral"
       colnames(newdata)[3] <- "neuro_postCentral"
       colnames(newdata)[4] <- "neuro_postBoth"
-      survout=survfit(cox,newdata)
+      survout=survival::survfit(cox,newdata)
 
       cox <- cox %>% summary()
 
