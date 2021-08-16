@@ -282,7 +282,7 @@ runAnalysis <- function() {
   results$pre_pns_summary <- pre_pns_summary
 
 
-  #rm(list = setdiff(ls(), c("CurrSiteId", "results")))
+  rm(list = setdiff(ls(), c("CurrSiteId", "results")))
 
   site_results <- paste0(CurrSiteId, "_results")
   assign(site_results, results)
