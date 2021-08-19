@@ -184,6 +184,7 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
     output$life$n <- NULL
     output$life$n.event <- NULL
     output$life$n.risk <- NULL
+    output$life$table <- NULL
   }
 
   if (length(unique(surv_df$neuro_post)) == 4) {
