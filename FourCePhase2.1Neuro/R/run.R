@@ -401,7 +401,7 @@ run_hosps <- function(mask_thres,
 
   ## -------------------------------------------------------------------------
   reg_results <- run_regressions(scores_unique, include_race)
-  sub_reg_results <- run_coxregressions(scores_unique, include_race, blur_abs, mask_tres)
+  sub_reg_results <- run_coxregressions(scores_unique, include_race, blur_abs, mask_thres)
 
   ## ----save-results---------------------------------------------------------
   binary_results <- c(obfus_tables, reg_results, sub_reg_results)
