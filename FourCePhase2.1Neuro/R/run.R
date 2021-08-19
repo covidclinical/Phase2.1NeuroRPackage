@@ -77,6 +77,9 @@ run_regressions <- function(df, include_race = TRUE) {
   n_readmit_reg_elix <-
     run_regression(df, "n_readmissions", ind_vars, FALSE)
 
+  n_readmit_reg_elix$fstatistic$dendf <- NULL
+  n_readmit_reg_elix$df <- NULL
+
   list(n_readmit_reg_elix = n_readmit_reg_elix)
 }
 
