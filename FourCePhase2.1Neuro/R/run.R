@@ -60,8 +60,6 @@ get_ind_vars <- function(df, include_race) {
     c(
       "neuro_post", "sex", "age_group",
       "pre_admission_cns", "pre_admission_pns",
-      # "neuro_post", "sex", "age_group_rf",
-      # "pre_admission_cns", "pre_admission_pns",
       paste0(".fittedPC", 1:10)
     ),
     names(unique_cols)[unique_cols == 1]
@@ -69,7 +67,6 @@ get_ind_vars <- function(df, include_race) {
 
   if (include_race) {
     ind_vars <- c(ind_vars, "race")
-    #ind_vars <- c(ind_vars, "race_rf")
   }
   ind_vars
 }
@@ -100,14 +97,16 @@ run_coxregression <- function(df, depend_var, ind_vars) {
       mutate(time = if_else(deceased == 1, time_to_death, time_to_last_discharge),
              time = if_else((is.na(time_to_last_discharge) & deceased == 0), days_since_admission, time),
              delta = deceased) %>%
-      select(patient_num, delta, time, all_of(ind_vars))
+      select(patient_num, delta, time, all_of(ind_vars)) %>%
+      filter(!(time == 0 & delta == 1))
   } else if (depend_var == "severe") {
     surv_df <- df %>%
       mutate(
         time = if_else(severe == 1 | deceased == 1, pmin(time_to_severe, time_to_death, na.rm = TRUE), time_to_last_discharge),
         time = if_else(is.na(time), days_since_admission, time),
         delta = if_else(severe == 1 | deceased == 1, 1, 0)) %>%
-      select(patient_num, delta, time, all_of(ind_vars))
+      select(patient_num, delta, time, all_of(ind_vars)) %>%
+      filter(!(time == 0 & delta == 1))
   } else if (depend_var == "time_to_last_discharge") {
     surv_df <- df %>%
       mutate(
@@ -121,8 +120,9 @@ run_coxregression <- function(df, depend_var, ind_vars) {
           TRUE ~ 1 #patients who are discharged
         )
       ) %>%
-      mutate(delta = as.factor(delta)) %>%
-      select(patient_num, delta, time, all_of(ind_vars))
+      #mutate(delta = as.factor(delta)) %>%
+      select(patient_num, delta, time, all_of(ind_vars)) %>%
+      filter(!(time == 0 & delta >= 1))
   } else if (depend_var == "time_to_first_discharge") {
     surv_df <- df %>%
       mutate(
@@ -136,8 +136,9 @@ run_coxregression <- function(df, depend_var, ind_vars) {
           TRUE ~ 1 #patients who are discharged
         )
       ) %>%
-      mutate(delta = as.factor(delta)) %>%
-      select(patient_num, delta, time, all_of(ind_vars))
+      #mutate(delta = as.factor(delta)) %>%
+      select(patient_num, delta, time, all_of(ind_vars)) %>%
+      filter(!(time == 0 & delta >= 1))
   }
 
   output <- tryCatch(
@@ -178,9 +179,12 @@ run_coxregression <- function(df, depend_var, ind_vars) {
   }
 
   if (length(unique(surv_df$neuro_post)) == 4) {
+
   # average survival functions
   average_survival <- tryCatch(
+
     {
+
       # [,-1] removes the intercept term
       covariate=model.matrix(as.formula(paste("survival::Surv(time,delta==1)", '~',
                                               independ_vars)),data=surv_df )[,-1]
@@ -196,20 +200,16 @@ run_coxregression <- function(df, depend_var, ind_vars) {
 
       # create a new data frame to create indicators for neuro status
       # each neuro status will have the same mean for each covariate
-      newdata=data.frame(rbind(c(0,0,0,0,meancovariate[-(1:3)]),
-                               c(0,1,0,0,meancovariate[-(1:3)]),
-                               c(0,0,1,0,meancovariate[-(1:3)]),
-                               c(0,0,0,1,meancovariate[-(1:3)])))
-      colnames(newdata)[1] <- "neuro_postNone"
-      colnames(newdata)[2] <- "neuro_postPeripheral"
-      colnames(newdata)[3] <- "neuro_postCentral"
-      colnames(newdata)[4] <- "neuro_postBoth"
+      newdata=data.frame(rbind(c(0,0,0,meancovariate[-(1:3)]),
+                               c(1,0,0,meancovariate[-(1:3)]),
+                               c(0,1,0,meancovariate[-(1:3)]),
+                               c(0,0,1,meancovariate[-(1:3)])))
+      colnames(newdata)=names(meancovariate)
       survout=survival::survfit(cox,newdata)
 
       cox <- cox %>% summary()
 
       average_survival =list("cox"=cox,"survf"=survout)
-
     },
     error = function(cond) {
       message(paste("Error when regressing", depend_var))
@@ -416,6 +416,48 @@ run_hosps <- function(mask_thres,
     lapply(function(x) mutate(x, site = currSiteId))
 
   ## -------------------------------------------------------------------------
+  # Create indiviudal tables for those who met outcome on admission and are
+  # exclude from main survival analysis
+
+  surv_exclude_pts <- function(time_to_outcome) {
+
+    if (time_to_outcome == "time_to_severe") {
+      demo_subset_df <- demo_df %>%
+        filter(time_to_severe == 0 | time_to_death == 0)
+    } else if (time_to_outcome == "time_to_death") {
+      demo_subset_df <- demo_df %>%
+        filter(time_to_death == 0)
+    } else if (time_to_outcome == "time_to_first_discharge") {
+      demo_subset_df <- demo_df %>%
+        filter(time_to_first_discharge == 0)
+    } else if (time_to_outcome == "time_to_last_discharge") {
+      demo_subset_df <- demo_df %>%
+        filter(time_to_last_discharge == 0)
+    }
+
+    scores_unique <- index_scores_elix %>%
+      right_join0(demo_subset_df, by = "patient_num") %>%
+      left_join(pca_covariates, by = "patient_num")
+
+    obfus_tables <- get_tables(
+      neuro_types,
+      demo_subset_df,
+      scores_unique,
+      comorb_names_elix,
+      blur_abs,
+      mask_thres
+    ) %>%
+      lapply(function(x) mutate(x, site = currSiteId))
+
+    return(obfus_tables)
+  }
+
+  severe_adm <- surv_exclude_pts("time_to_severe")
+  death_adm <- surv_exclude_pts("time_to_death")
+  first_adm <- surv_exclude_pts("time_to_first_discharge")
+  last_adm <- surv_exclude_pts("time_to_last_discharge")
+
+  ## -------------------------------------------------------------------------
   reg_results <- run_regressions(scores_unique, include_race)
   sub_reg_results <- run_coxregressions(scores_unique, include_race)
 
@@ -426,6 +468,10 @@ run_hosps <- function(mask_thres,
     icd_tables = icd_tables,
     binary_results = binary_results,
     cpns_results = cpns_results,
+    severe_adm = severe_adm,
+    death_adm = death_adm,
+    first_adm = first_adm,
+    last_adm = last_adm,
     n_codes_per_patient = n_codes_per_patient,
     n_both_codes_per_patient = n_both_codes_per_patient
   )

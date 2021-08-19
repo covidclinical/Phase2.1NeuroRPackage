@@ -193,26 +193,7 @@ runAnalysis <- function() {
     left_join(pre_neuro, by = "patient_num") %>%
     replace_na(list(n_readmissions = 0,
                     pre_admission_cns = 0,
-                    pre_admission_pns = 0)) %>%
-    # refactor age and race variables
-    mutate(age_group_rf = if_else(age_group == "00to02" |
-                                    age_group == "03to05" |
-                                    age_group == "06to11" |
-                                    age_group == "12to17" |
-                                  age_group == "18to25" |
-                                  age_group == "26to49",
-                                  "00to49", "50to80plus"),
-           # age_group_rf = if_else(age_group == "18to25" |
-           #                          age_group == "26to49",
-           #                          "18to49", age_group_rf),
-           # age_group_rf = if_else(age_group == "50to69" |
-           #                          age_group == "70to79" |
-           #                          age_group == "80plus",
-           #                        "50to80plus", age_group_rf),
-           race_rf = if_else(race == "white", "white", "NA"),
-           race_rf = if_else(race == "black", "black", race_rf),
-           race_rf = if_else(race == "asian" | race == "hawaiian_pacific_islander", "asian_hawaiian_pacific_islander", race_rf),
-           race_rf = if_else(race == "american_indian" | race == "other", "other", race_rf))
+                    pre_admission_pns = 0))
 
   comorb_list <- get_elix_mat(obs_first_hosp, icd_version)
 
@@ -241,14 +222,6 @@ runAnalysis <- function() {
     data.frame() %>%
     `colnames<-`(paste0(".fittedPC", 1:10)) %>%
     tibble::rownames_to_column("patient_num")
-
-  # this is not working :/
-  #output_log <- file(paste0(getProjectOutputDirectory(), "output_log.txt"), open = "wt") # File name of output log
-  # #sink(file = file.path(data_dir, paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
-  # #sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
-  # sink(output_log, type="message")
-  #sink(file = file.path(getProjectOutputDirectory(), paste0(currSiteId, "_log.txt")), split = TRUE, append = FALSE)
-  #sink(output_log, type = "message")
 
   results <- list(
     site = CurrSiteId,
@@ -281,7 +254,6 @@ runAnalysis <- function() {
   results$pre_cns_summary <- pre_cns_summary
   results$pre_pns_summary <- pre_pns_summary
 
-
   rm(list = setdiff(ls(), c("CurrSiteId", "results")))
 
   site_results <- paste0(CurrSiteId, "_results")
@@ -309,5 +281,4 @@ runAnalysis <- function() {
     "\nPlease submit the result file by running submitAnalysis()\n"
   )
 
-  #sink()
 }
