@@ -80,7 +80,7 @@ run_regressions <- function(df, include_race = TRUE) {
   list(n_readmit_reg_elix = n_readmit_reg_elix)
 }
 
-run_coxregression <- function(df, depend_var, ind_vars) {
+run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
   if (length(unique(df[, depend_var, drop = T])) <= 1) {
     return(NULL)
   }
@@ -261,16 +261,16 @@ run_coxregressions <- function(df, include_race = TRUE) {
   ind_vars <- get_ind_vars(df, include_race)
 
   time_severe_reg_elix <-
-    run_coxregression(df, "severe", ind_vars)
+    run_coxregression(df, "severe", ind_vars, blur_abs, mask_thres)
 
   time_deceased_reg_elix <-
-    run_coxregression(df, "deceased", ind_vars)
+    run_coxregression(df, "deceased", ind_vars, blur_abs, mask_thres)
 
   time_last_discharge_reg_elix <-
-    run_coxregression(df, "time_to_last_discharge", ind_vars)
+    run_coxregression(df, "time_to_last_discharge", ind_vars, blur_abs, mask_thres)
 
   time_first_discharge_reg_elix <-
-    run_coxregression(df, "time_to_first_discharge", ind_vars)
+    run_coxregression(df, "time_to_first_discharge", ind_vars, blur_abs, mask_thres)
 
   list(
     time_severe_reg_elix = time_severe_reg_elix,
