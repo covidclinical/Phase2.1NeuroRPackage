@@ -8,6 +8,7 @@ count_stats <- function(df, count_var, neg_var, group_var, ...) {
   Count_var <- sym(stringr::str_to_title(count_var))
   group_var <- sym(group_var)
 
+  set.seed(123)
   df %>%
     select(group_var, count_var) %>%
     group_by(!!group_var) %>%
@@ -38,6 +39,7 @@ continuous_stats <- function(df, cont_var, name, group_var,...) {
   cont_var <- sym(cont_var)
   group_var <- sym(group_var)
 
+  set.seed(123)
   df %>%
     select(group_var, cont_var) %>%
     group_by(!!group_var) %>%
