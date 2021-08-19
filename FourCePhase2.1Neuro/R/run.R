@@ -162,7 +162,7 @@ run_coxregression <- function(df, depend_var, ind_vars) {
     }
   )
 
-  event_table = data.frame(neuro_status = life$strata, time = life$time, n.risk = life$n.risk, n.event = life$n.event, n.censor = life$n.censor)
+  event_table = data.frame(neuro_status = output$life$strata, time = output$life$time, n.risk = output$life$n.risk, n.event = output$life$n.event, n.censor = output$life$n.censor)
   # mask and blur for obfuscation
   event_table_obfs <- blur_it(event_table, vars = c("n.risk", "n.event", "n.censor"), blur_abs, mask_thres)
 
