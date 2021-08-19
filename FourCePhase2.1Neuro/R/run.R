@@ -80,7 +80,7 @@ run_regressions <- function(df, include_race = TRUE) {
   list(n_readmit_reg_elix = n_readmit_reg_elix)
 }
 
-run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
+run_coxregression <- function(df, depend_var, ind_vars) {
   if (length(unique(df[, depend_var, drop = T])) <= 1) {
     return(NULL)
   }
@@ -257,20 +257,20 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
 }
 
 
-run_coxregressions <- function(df, include_race = TRUE) {
+run_coxregressions <- function(df, include_race = TRUE, blur_abs, mask_thres) {
   ind_vars <- get_ind_vars(df, include_race)
 
   time_severe_reg_elix <-
-    run_coxregression(df, "severe", ind_vars, blur_abs, mask_thres)
+    run_coxregression(df, "severe", ind_vars)
 
   time_deceased_reg_elix <-
-    run_coxregression(df, "deceased", ind_vars, blur_abs, mask_thres)
+    run_coxregression(df, "deceased", ind_vars)
 
   time_last_discharge_reg_elix <-
-    run_coxregression(df, "time_to_last_discharge", ind_vars, blur_abs, mask_thres)
+    run_coxregression(df, "time_to_last_discharge", ind_vars)
 
   time_first_discharge_reg_elix <-
-    run_coxregression(df, "time_to_first_discharge", ind_vars, blur_abs, mask_thres)
+    run_coxregression(df, "time_to_first_discharge", ind_vars)
 
   list(
     time_severe_reg_elix = time_severe_reg_elix,
@@ -401,7 +401,7 @@ run_hosps <- function(mask_thres,
 
   ## -------------------------------------------------------------------------
   reg_results <- run_regressions(scores_unique, include_race)
-  sub_reg_results <- run_coxregressions(scores_unique, include_race)
+  sub_reg_results <- run_coxregressions(scores_unique, include_race, blur_abs, mask_tres)
 
   ## ----save-results---------------------------------------------------------
   binary_results <- c(obfus_tables, reg_results, sub_reg_results)
@@ -475,7 +475,7 @@ run_hosps <- function(mask_thres,
 
   ## -------------------------------------------------------------------------
   reg_results <- run_regressions(scores_unique, include_race)
-  sub_reg_results <- run_coxregressions(scores_unique, include_race)
+  sub_reg_results <- run_coxregressions(scores_unique, include_race, blur_abs, mask_thres)
 
   ## ----save-results---------------------------------------------------------
   cpns_results <- c(obfus_tables, reg_results, sub_reg_results)
