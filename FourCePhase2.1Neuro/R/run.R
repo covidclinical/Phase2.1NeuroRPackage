@@ -120,7 +120,6 @@ run_coxregression <- function(df, depend_var, ind_vars) {
           TRUE ~ 1 #patients who are discharged
         )
       ) %>%
-      #mutate(delta = as.factor(delta)) %>%
       select(patient_num, delta, time, all_of(ind_vars)) %>%
       filter(!(time == 0 & delta >= 1))
   } else if (depend_var == "time_to_first_discharge") {
@@ -136,7 +135,6 @@ run_coxregression <- function(df, depend_var, ind_vars) {
           TRUE ~ 1 #patients who are discharged
         )
       ) %>%
-      #mutate(delta = as.factor(delta)) %>%
       select(patient_num, delta, time, all_of(ind_vars)) %>%
       filter(!(time == 0 & delta >= 1))
   }
@@ -163,13 +161,20 @@ run_coxregression <- function(df, depend_var, ind_vars) {
       return(NULL) # return NA in case of error
     }
   )
+
+  event_table = data.frame(neuro_status = life$strata, time = life$time, n.risk = life$n.risk, n.event = life$n.event, n.censor = life$n.censor)
+  # mask and blur for obfuscation
+  event_table_obfs <- blur_it(event_table, vars = c("n.risk", "n.event", "n.censor"), blur_abs, mask_thres)
+
+  output$event_table_obfs <- event_table_obfs
+
   if (!is.null(output)) {
     output$cox$deviance.resid <- NULL
     output$cox$na.action <- NULL
     output$cox$terms <- NULL
     output$cox$residuals <- NULL
     output$cox$n <- NULL
-    output$cox$nevent <- NULL
+    output$cox$n.event <- NULL
     output$cox$y <- NULL
     output$cox$linear.predictors <- NULL
     output$life$n.censor <- NULL
@@ -206,10 +211,20 @@ run_coxregression <- function(df, depend_var, ind_vars) {
                                c(0,0,1,meancovariate[-(1:3)])))
       colnames(newdata)=names(meancovariate)
       survout=survival::survfit(cox,newdata)
+      event_table1 = data.frame(time = survout[1]$time, n.risk = survout[1]$n.risk, n.event = survout[1]$n.event, n.censor = survout[1]$n.censor, neuro_status = "neuro_postNone")
+      event_table2 = data.frame(time = survout[2]$time, n.risk = survout[2]$n.risk, n.event = survout[2]$n.event, n.censor = survout[2]$n.censor, neuro_status = "neuro_postPeripheral")
+      event_table3 = data.frame(time = survout[3]$time, n.risk = survout[3]$n.risk, n.event = survout[3]$n.event, n.censor = survout[3]$n.censor, neuro_status = "neuro_postCentral")
+      event_table4 = data.frame(time = survout[4]$time, n.risk = survout[4]$n.risk, n.event = survout[4]$n.event, n.censor = survout[4]$n.censor, neuro_status = "neuro_postBoth")
+
+      event_table <- rbind(event_table1, event_table2, event_table3, event_table4)
+
+      # mask and blur for obfuscation
+      event_table_obfs <- blur_it(event_table, vars = c("n.risk", "n.event", "n.censor"), blur_abs, mask_thres)
 
       cox <- cox %>% summary()
 
-      average_survival =list("cox"=cox,"survf"=survout)
+      average_survival =list("cox"=cox,"survf"=survout, "event_table_obfs" = event_table_obfs)
+
     },
     error = function(cond) {
       message(paste("Error when regressing", depend_var))
@@ -229,6 +244,7 @@ run_coxregression <- function(df, depend_var, ind_vars) {
     average_survival$cox$y <- NULL
     average_survival$cox$linear.predictors <- NULL
     average_survival$survf$n <- NULL
+    average_survival$life$n.censor <- NULL
     average_survival$survf$n.event <- NULL
     average_survival$survf$n.risk <- NULL
   }
@@ -416,7 +432,7 @@ run_hosps <- function(mask_thres,
     lapply(function(x) mutate(x, site = currSiteId))
 
   ## -------------------------------------------------------------------------
-  # Create indiviudal tables for those who met outcome on admission and are
+  # Create individual tables for those who met outcome on admission and are
   # exclude from main survival analysis
 
   surv_exclude_pts <- function(time_to_outcome) {
