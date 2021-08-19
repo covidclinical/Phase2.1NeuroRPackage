@@ -174,7 +174,7 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
     output$cox$terms <- NULL
     output$cox$residuals <- NULL
     output$cox$n <- NULL
-    output$cox$n.event <- NULL
+    output$cox$nevent <- NULL
     output$cox$y <- NULL
     output$cox$linear.predictors <- NULL
     output$life$n.censor <- NULL
@@ -244,6 +244,7 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
     average_survival$cox$y <- NULL
     average_survival$cox$linear.predictors <- NULL
     average_survival$survf$n <- NULL
+    average_survival$survf$n.censor <- NULL
     average_survival$life$n.censor <- NULL
     average_survival$survf$n.event <- NULL
     average_survival$survf$n.risk <- NULL
