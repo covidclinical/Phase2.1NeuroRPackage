@@ -183,7 +183,7 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
     }
   )
 
-  output$event_table_obfs <- event_table_list
+  output$event_table_obfs <- event_table_obfs
 
   if (!is.null(output)) {
     output$cox$deviance.resid <- NULL
