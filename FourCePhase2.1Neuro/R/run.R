@@ -154,9 +154,6 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
           as.formula() %>%
           survival::survfit(data = surv_df) %>%
           summary(),
-      event_table = data.frame(neuro_status = life$strata, time = life$time, n.risk = life$n.risk, n.event = life$n.event, n.censor = life$n.censor),
-      # mask and blur for obfuscation
-      event_table_obfs = event_table_obfs <- blur_it(event_table, vars = c("n.risk", "n.event", "n.censor"), blur_abs, mask_thres)
       )
     },
     error = function(cond) {
@@ -168,8 +165,23 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
     }
   )
 
+  event_table_list <- tryCatch(
+    {
+    event_table = data.frame(neuro_status = life$strata, time = life$time, n.risk = life$n.risk, n.event = life$n.event, n.censor = life$n.censor)
 
-  output$event_table <- NULL
+    # mask and blur for obfuscation
+    event_table_obfs = event_table_obfs <- blur_it(event_table, vars = c("n.risk", "n.event", "n.censor"), blur_abs, mask_thres)
+    },
+    error = function(cond) {
+      message(paste("Error when regressing", depend_var))
+      message("Original error message:")
+      message(cond)
+      message("Skipping for now...")
+      return(NULL) # return NA in case of error
+    }
+  )
+
+  output$event_table_obfs <- event_table_obfs
 
   if (!is.null(output)) {
     output$cox$deviance.resid <- NULL
