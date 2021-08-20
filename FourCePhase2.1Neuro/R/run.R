@@ -153,7 +153,7 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
         life = "survival::Surv(time, delta==1) ~ neuro_post" %>%
           as.formula() %>%
           survival::survfit(data = surv_df) %>%
-          summary(),
+          summary()
       )
     },
     error = function(cond) {
@@ -165,12 +165,14 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
     }
   )
 
-  event_table_list <- tryCatch(
+  event_table_obfs <- tryCatch(
     {
-    event_table = data.frame(neuro_status = life$strata, time = life$time, n.risk = life$n.risk, n.event = life$n.event, n.censor = life$n.censor)
+      message("generating event_tables for cox model")
+      event_table = data.frame(neuro_status = output$life$strata, time = output$life$time, n.risk = output$life$n.risk, n.event = output$life$n.event, n.censor = output$life$n.censor)
 
-    # mask and blur for obfuscation
-    event_table_obfs = event_table_obfs <- blur_it(event_table, vars = c("n.risk", "n.event", "n.censor"), blur_abs, mask_thres)
+      # mask and blur for obfuscation
+      message("blurring event_tables for adjusted survival")
+      event_table_obfs <- blur_it(event_table, vars = c("n.risk", "n.event", "n.censor"), blur_abs, mask_thres)
     },
     error = function(cond) {
       message(paste("Error when regressing", depend_var))
@@ -181,7 +183,7 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
     }
   )
 
-  output$event_table_obfs <- event_table_obfs
+  output$event_table_obfs <- event_table_list
 
   if (!is.null(output)) {
     output$cox$deviance.resid <- NULL
@@ -227,15 +229,17 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
                                c(0,0,1,meancovariate[-(1:3)])))
       colnames(newdata)=names(meancovariate)
       survout=survival::survfit(cox,newdata)
+      message("generating event_tables for adjusted survival curves")
       event_table1 = data.frame(time = survout[1]$time, n.risk = survout[1]$n.risk, n.event = survout[1]$n.event, n.censor = survout[1]$n.censor, neuro_status = "neuro_postNone")
       event_table2 = data.frame(time = survout[2]$time, n.risk = survout[2]$n.risk, n.event = survout[2]$n.event, n.censor = survout[2]$n.censor, neuro_status = "neuro_postPeripheral")
       event_table3 = data.frame(time = survout[3]$time, n.risk = survout[3]$n.risk, n.event = survout[3]$n.event, n.censor = survout[3]$n.censor, neuro_status = "neuro_postCentral")
       event_table4 = data.frame(time = survout[4]$time, n.risk = survout[4]$n.risk, n.event = survout[4]$n.event, n.censor = survout[4]$n.censor, neuro_status = "neuro_postBoth")
 
-      event_table <- rbind(event_table1, event_table2, event_table3, event_table4)
+      event_table_surv_adjust <- rbind(event_table1, event_table2, event_table3, event_table4)
 
       # mask and blur for obfuscation
-      event_table_obfs <- blur_it(event_table, vars = c("n.risk", "n.event", "n.censor"), blur_abs, mask_thres)
+      message("blurring event_tables for adjusted survival curves")
+      event_table_obfs <- blur_it(event_table_surv_adjust, vars = c("n.risk", "n.event", "n.censor"), blur_abs, mask_thres)
 
       cox <- cox %>% summary()
 
