@@ -124,7 +124,7 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
         )
       ) %>%
       select(patient_num, delta, time, all_of(ind_vars)) %>%
-      filter(!(time == 0 & delta >= 1))
+      filter(!(time == 0 & delta == 1))
   } else if (depend_var == "time_to_first_discharge") {
     surv_df <- df %>%
       mutate(
@@ -139,7 +139,7 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
         )
       ) %>%
       select(patient_num, delta, time, all_of(ind_vars)) %>%
-      filter(!(time == 0 & delta >= 1))
+      filter(!(time == 0 & delta == 1))
   }
 
   output <- tryCatch(
