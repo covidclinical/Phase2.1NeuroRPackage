@@ -198,6 +198,11 @@ runAnalysis <- function() {
   comorb_list <- get_elix_mat(obs_first_hosp, icd_version)
 
   index_scores_elix <- comorb_list$index_scores_elix
+
+  # ensure data is formatted correctly
+  index_scores_elix$patient_num <- as.character(index_scores_elix$patient_num)
+  demo_raw$patient_num <- as.character(demo_raw$patient_num)
+
   index_scores_elix <- index_scores_elix %>%
     right_join0(select(demo_raw, patient_num), by = "patient_num")
 
