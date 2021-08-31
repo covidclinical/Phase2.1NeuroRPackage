@@ -147,15 +147,18 @@ runAnalysis <- function() {
 
   temp_neuro <-
     temporal_neuro(comp_readmissions, obs_raw, neuro_icds, readmissions)
+
   obs_first_hosp <- temp_neuro$obs_first_hosp
-  propagated_codes <- temp_neuro$propagated_codes %>%
-    blur_it(c("n_early_codes", "n_new_codes"), blur_abs, mask_thres) %>%
-    mutate(
-      prop_new_codes = if_else(n_early_codes == 0, 0, prop_new_codes),
-      prob_repeated = if_else(n_early_codes == 0, 0, prob_repeated),
-      prob_at_least_one_new =
-        if_else(n_early_codes == 0, 0, prob_at_least_one_new)
-    )
+
+  # 8.31.2021 - will remove this function for now. I don't think this is excluding our "Both" patients
+  # propagated_codes <- temp_neuro$propagated_codes %>%
+  #   blur_it(c("n_early_codes", "n_new_codes"), blur_abs, mask_thres) %>%
+  #   mutate(
+  #     prop_new_codes = if_else(n_early_codes == 0, 0, prop_new_codes),
+  #     prob_repeated = if_else(n_early_codes == 0, 0, prob_repeated),
+  #     prob_at_least_one_new =
+  #       if_else(n_early_codes == 0, 0, prob_at_least_one_new)
+  #   )
 
   nstay_df <- comp_readmissions %>%
     filter(first_out) %>%
