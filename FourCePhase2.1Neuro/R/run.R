@@ -167,8 +167,14 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
 
   event_table_obfs <- tryCatch(
     {
+
+      if(dim(output$life$n.censor)[2] == 2) {
+        output$life$n.censor = data.frame(x=unlist(as.data.frame(output$life$n.censor)))
+        colnames(output$life$n.censor) <- "n.censor"
+      }
+
       message("generating event_tables for cox model")
-      event_table = data.frame(neuro_status = output$life$strata, time = output$life$time, n.risk = output$life$n.risk, n.event = output$life$n.event, n.censor = output$life$n.censor)
+      event_table = data.frame(time = output$life$time, n.risk = output$life$n.risk, n.event = output$life$n.event, n.censor = output$life$n.censor)
 
       # mask and blur for obfuscation
       message("blurring event_tables for adjusted survival")
@@ -312,63 +318,57 @@ run_hosps <- function(mask_thres,
                       pca_covariates) {
   ## -------------------------------------------------------------------------
 
-  # ensure patient_num is character
-  obs_raw$patient_num <- as.character(obs_raw$patient_num)
-  demo_processed$patient_num <- as.character(demo_processed$patient_num)
-  pca_covariates$patient_num <- as.character(pca_covariates$patient_num)
-  index_scores_elix$patient_num <- as.character(index_scores_elix$patient_num)
-  nstay_df$patient_num <- as.character(nstay_df$patient_num)
-
-  neuro_patients <- obs_raw %>%
-    filter(days_since_admission >= 0) %>%
-    right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
-    filter(!is.na(patient_num)) %>%
-    distinct(patient_num, concept_code, pns_cns) %>%
-    group_by(patient_num) %>%
-    mutate(nerv_sys_count = length(unique(pns_cns))) %>%
-    ungroup() %>%
-    mutate(neuro_type = case_when(
-      nerv_sys_count == 2 ~ "Both",
-      TRUE ~ as.character(pns_cns)
-    ))
-
-  # count number of Both patients
-  both_pts <- neuro_patients %>%
-    filter(neuro_type == "Both") %>%
-    distinct(patient_num)
-
-  both <- both_pts %>%
-    count() %>%
-    as.integer() %>%
-    blur_mask_int_num(., blur_abs, mask_thres)
-
-  # remove both from neuro_patients df
-  neuro_patients <- neuro_patients %>%
-    filter(!neuro_type == "Both")
-
-  neuro_pt_post <- unique(neuro_patients$patient_num)
-
-  # calculate mean and median number of codes per patient and neuro_type status
-  n_codes_per_patient <- neuro_patients %>%
-    group_by(patient_num, neuro_type) %>%
-    mutate(count = n()) %>%
-    ungroup() %>%
-    distinct(patient_num, neuro_type, count) %>%
-    select(neuro_type, count) %>%
-    group_by(neuro_type) %>%
-    mutate(mean_count = mean(count),
-           median_count = median(count),
-           iqr25 = quantile(count, probs = 0.25),
-           iqr75 = quantile(count, probs = 0.75)) %>%
-    ungroup() %>%
-    distinct(neuro_type, mean_count, iqr25, median_count, iqr75)
-
-
-  non_neuro_patients <-
-    data.frame(patient_num = setdiff(demo_processed$patient_num, neuro_pt_post)) %>%
-    mutate(concept_code = "NN") %>%
-    # remove both patients
-    filter(!patient_num %in% both_pts$patient_num)
+#
+#   neuro_patients <- obs_raw %>%
+#     filter(days_since_admission >= 0) %>%
+#     right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
+#     filter(!is.na(patient_num)) %>%
+#     distinct(patient_num, concept_code, pns_cns) %>%
+#     group_by(patient_num) %>%
+#     mutate(nerv_sys_count = length(unique(pns_cns))) %>%
+#     ungroup() %>%
+#     mutate(neuro_type = case_when(
+#       nerv_sys_count == 2 ~ "Both",
+#       TRUE ~ as.character(pns_cns)
+#     ))
+#
+#   # count number of Both patients
+#   both_pts <- neuro_patients %>%
+#     filter(neuro_type == "Both") %>%
+#     distinct(patient_num)
+#
+#   both <- both_pts %>%
+#     count() %>%
+#     as.integer() %>%
+#     blur_mask_int_num(., blur_abs, mask_thres)
+#
+#   # remove both from neuro_patients df
+#   neuro_patients <- neuro_patients %>%
+#     filter(!neuro_type == "Both")
+#
+#   neuro_pt_post <- unique(neuro_patients$patient_num)
+#
+#   # calculate mean and median number of codes per patient and neuro_type status
+#   n_codes_per_patient <- neuro_patients %>%
+#     group_by(patient_num, neuro_type) %>%
+#     mutate(count = n()) %>%
+#     ungroup() %>%
+#     distinct(patient_num, neuro_type, count) %>%
+#     select(neuro_type, count) %>%
+#     group_by(neuro_type) %>%
+#     mutate(mean_count = mean(count),
+#            median_count = median(count),
+#            iqr25 = quantile(count, probs = 0.25),
+#            iqr75 = quantile(count, probs = 0.75)) %>%
+#     ungroup() %>%
+#     distinct(neuro_type, mean_count, iqr25, median_count, iqr75)
+#
+#
+#   non_neuro_patients <-
+#     data.frame(patient_num = setdiff(demo_processed$patient_num, neuro_pt_post)) %>%
+#     mutate(concept_code = "NN") %>%
+#     # remove both patients
+#     filter(!patient_num %in% both_pts$patient_num)
 
 
   ## -------------------------------------------------------------------------
@@ -557,39 +557,39 @@ get_elix_mat <- function(obs_raw, icd_version, t1 = -365, t2 = -15, map_type = "
   return(comorb_list)
 }
 
-temporal_neuro <- function(comp_readmissions, obs_raw, neuro_icds, readmissions) {
+temporal_neuro <- function(comp_readmissions, obs_raw, neuro_icds, readmissions, in_hospital) {
+
   obs_first_hosp <- comp_readmissions %>%
-    filter(first_out) %>%
+    left_join(., in_hospital, by = "patient_num") %>%
+    filter(first_out | still_in_hospital == 1) %>%
     # days since admission the patient is out of hospital
     transmute(patient_num, dsa = days_since_admission) %>%
     right_join(obs_raw, by = "patient_num") %>%
     filter(days_since_admission < dsa) %>%
     select(-dsa)
 
-  first_neuro_conds <- obs_first_hosp %>%
-    filter(days_since_admission >= 0) %>%
-    right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
-    distinct(patient_num, early_code = concept_code) %>%
-    group_by(patient_num) %>%
-    summarise_all(list(~ list(.)))
-
-  obs_later_hosp <- comp_readmissions %>%
-    filter(first_out) %>%
-    # days since admission the patient is out of hospital
-    transmute(patient_num,
-      dsa = days_since_admission
-    ) %>%
-    right_join(obs_raw, by = "patient_num") %>%
-    filter(days_since_admission >= dsa) %>%
-    right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
-    distinct(patient_num, later_code = concept_code) %>%
-    group_by(patient_num) %>%
-    summarise_all(list(~ list(.))) %>%
-    ungroup() %>%
-    right_join(first_neuro_conds, by = "patient_num")
-
   #8.31.2021 - will remove the functions for propagated codes for now. I don't think this is excluding our "Both" patients
-  #%>%
+  # first_neuro_conds <- obs_first_hosp %>%
+  #   filter(days_since_admission >= 0) %>%
+  #   right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
+  #   distinct(patient_num, early_code = concept_code) %>%
+  #   group_by(patient_num) %>%
+  #   summarise_all(list(~ list(.)))
+  #
+  # obs_later_hosp <- comp_readmissions %>%
+  #   filter(first_out) %>%
+  #   # days since admission the patient is out of hospital
+  #   transmute(patient_num,
+  #     dsa = days_since_admission
+  #   ) %>%
+  #   right_join(obs_raw, by = "patient_num") %>%
+  #   filter(days_since_admission >= dsa) %>%
+  #   right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
+  #   distinct(patient_num, later_code = concept_code) %>%
+  #   group_by(patient_num) %>%
+  #   summarise_all(list(~ list(.))) %>%
+  #   ungroup() %>%
+  #   right_join(first_neuro_conds, by = "patient_num") %>%
   #   mutate(
   #     n_new_code = purrr::map2(later_code, early_code, ~ length(setdiff(.x, .y))),
   #     repeated_code = purrr::map2(later_code, early_code, intersect),
