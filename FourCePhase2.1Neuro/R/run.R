@@ -630,7 +630,7 @@ temporal_neuro <- function(comp_readmissions, obs_raw, neuro_icds, readmissions)
 
 
   list(
-    obs_first_hosp = obs_first_hosp,
-    propagated_codes = propagated_codes
+    obs_first_hosp = obs_first_hosp#,
+    #propagated_codes = propagated_codes
   )
 }
