@@ -8,7 +8,7 @@ count_stats <- function(df, count_var, neg_var, group_var, ...) {
   Count_var <- sym(stringr::str_to_title(count_var))
   group_var <- sym(group_var)
 
-  set.seed(123)
+  set.seed(446)
   df %>%
     select(group_var, count_var) %>%
     group_by(!!group_var) %>%
@@ -39,7 +39,7 @@ continuous_stats <- function(df, cont_var, name, group_var,...) {
   cont_var <- sym(cont_var)
   group_var <- sym(group_var)
 
-  set.seed(123)
+  set.seed(446)
   df %>%
     select(group_var, cont_var) %>%
     group_by(!!group_var) %>%
@@ -60,6 +60,9 @@ continuous_stats <- function(df, cont_var, name, group_var,...) {
 }
 
 demo_stats <- function(var, df, group_var, ...){
+
+  set.seed(446)
+
   group_var <- sym(group_var)
   svar <- sym(var)
   df %>%
@@ -86,6 +89,8 @@ blur_it <- function(df, vars, blur_abs, mask_thres){
   # the count receive a small addition of a random number from -3 to 3.
   # If a count is less than mask_thres, set that count to 0.
 
+  set.seed(446)
+
   for (var in vars){
     var <- sym(var)
     blur_vec <- sample(seq(- blur_abs, blur_abs), nrow(df), replace = TRUE)
@@ -96,10 +101,28 @@ blur_it <- function(df, vars, blur_abs, mask_thres){
   df
 }
 
+blur_mask_int_num <- function(int_or_num_to_blur, blur_abs, mask_thres){
+  # Obfuscate single numeric or interger value.
+  # If blurring range is +/-3, or blur_abs = 3,
+  # the count receive a small addition of a random number from -3 to 3.
+  # If a count is less than mask_thres, set that count to 0.
+
+    set.seed(446)
+
+    blur_vec <- sample(seq(- blur_abs, blur_abs), 1, replace = TRUE)
+
+    int_or_num_to_blur = int_or_num_to_blur + blur_vec
+
+    int_or_num_to_blur = ifelse(int_or_num_to_blur < mask_thres, 0, int_or_num_to_blur)
+
+  return(int_or_num_to_blur)
+}
+
 mask_it <- function(df, var, blur_abs, mask_thres){
   # Obfuscate count values.
   # If a count is less than mask_thres, set that count to 0.
 
+  set.seed(446)
   var <- sym(var)
   df %>%
     mutate(!!var := ifelse(abs(!!var) < mask_thres, 0, !!var))
