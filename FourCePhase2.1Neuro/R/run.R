@@ -326,9 +326,11 @@ run_hosps <- function(mask_thres,
     ))
 
   # count number of Both patients
-  both <- neuro_patients %>%
+  both_pts <- neuro_patients %>%
     filter(neuro_type == "Both") %>%
-    distinct(patient_num) %>%
+    distinct(patient_num)
+
+  both <- both_pts %>%
     count() %>%
     as.integer() %>%
     blur_mask_int_num(., blur_abs, mask_thres)
@@ -357,7 +359,10 @@ run_hosps <- function(mask_thres,
 
   non_neuro_patients <-
     data.frame(patient_num = setdiff(demo_processed$patient_num, neuro_pt_post)) %>%
-    mutate(concept_code = "NN")
+    mutate(concept_code = "NN") %>%
+    # remove both patients
+    filter(!patient_num %in% both_pts$patient_num)
+
 
   ## -------------------------------------------------------------------------
   # days_count_min_max <- obs_raw %>%
@@ -393,6 +398,7 @@ run_hosps <- function(mask_thres,
   ## -------------------------------------------------------------------------
   # Part 1: Binary outcome: neuro vs. non_neuro
   demo_df <- demo_processed %>%
+    filter(!patient_num %in% both_pts$patient_num) %>%
     mutate(neuro_post = patient_num %in% neuro_pt_post %>%
       as.factor() %>%
       fct_recode(
@@ -427,6 +433,7 @@ run_hosps <- function(mask_thres,
   neuro_types <- c("None", "Peripheral", "Central")
 
   demo_df <- demo_processed %>%
+    filter(!patient_num %in% both_pts$patient_num) %>%
     left_join(distinct(select(neuro_patients, patient_num, neuro_type)),
       by = "patient_num"
     ) %>%
@@ -572,51 +579,54 @@ temporal_neuro <- function(comp_readmissions, obs_raw, neuro_icds, readmissions)
     group_by(patient_num) %>%
     summarise_all(list(~ list(.))) %>%
     ungroup() %>%
-    right_join(first_neuro_conds, by = "patient_num") %>%
-    mutate(
-      n_new_code = purrr::map2(later_code, early_code, ~ length(setdiff(.x, .y))),
-      repeated_code = purrr::map2(later_code, early_code, intersect),
-      readmitted = patient_num %in% readmissions$patient_num,
-      prop_new_code = purrr::map2(n_new_code, later_code, ~ .x / length(.y))
-    ) %>%
-    select(-patient_num)
+    right_join(first_neuro_conds, by = "patient_num")
 
-  new_codes <- obs_later_hosp %>%
-    filter(readmitted) %>%
-    tidyr::unnest(c(early_code, n_new_code, prop_new_code)) %>%
-    mutate_at(
-      vars(prop_new_code),
-      ~ replace(., is.nan(.), 0)
-    ) %>%
-    group_by(early_code) %>%
-    summarise(
-      n_early_codes = n(),
-      n_new_codes = sum(n_new_code),
-      n_no_new_codes = sum(n_new_code == 0),
-      at_least_one_new_code = sum(n_new_code > 0),
-      prop_new_codes = sum(prop_new_code)
-    )
+  #8.31.2021 - will remove the functions for propagated codes for now. I don't think this is excluding our "Both" patients
+  #%>%
+  #   mutate(
+  #     n_new_code = purrr::map2(later_code, early_code, ~ length(setdiff(.x, .y))),
+  #     repeated_code = purrr::map2(later_code, early_code, intersect),
+  #     readmitted = patient_num %in% readmissions$patient_num,
+  #     prop_new_code = purrr::map2(n_new_code, later_code, ~ .x / length(.y))
+  #   ) %>%
+  #   select(-patient_num)
+  #
+  # new_codes <- obs_later_hosp %>%
+  #   filter(readmitted) %>%
+  #   tidyr::unnest(c(early_code, n_new_code, prop_new_code)) %>%
+  #   mutate_at(
+  #     vars(prop_new_code),
+  #     ~ replace(., is.nan(.), 0)
+  #   ) %>%
+  #   group_by(early_code) %>%
+  #   summarise(
+  #     n_early_codes = n(),
+  #     n_new_codes = sum(n_new_code),
+  #     n_no_new_codes = sum(n_new_code == 0),
+  #     at_least_one_new_code = sum(n_new_code > 0),
+  #     prop_new_codes = sum(prop_new_code)
+  #   )
 
-  propagated_codes <- NULL
-
-  if (sum(obs_later_hosp$readmitted) > 0) {
-    propagated_codes <- obs_later_hosp %>%
-      filter(readmitted) %>%
-      tidyr::unnest(repeated_code) %>%
-      pull(repeated_code) %>%
-      table() %>%
-      data.frame() %>%
-      `colnames<-`(c("early_code", "repeated")) %>%
-      right_join0(new_codes, by = "early_code") %>%
-      transmute(
-        early_code,
-        n_early_codes,
-        n_new_codes,
-        prop_new_codes,
-        prob_repeated = repeated / n_early_codes,
-        prob_at_least_one_new = at_least_one_new_code / n_early_codes
-      )
-  }
+  # propagated_codes <- NULL
+  #
+  # if (sum(obs_later_hosp$readmitted) > 0) {
+  #   propagated_codes <- obs_later_hosp %>%
+  #     filter(readmitted) %>%
+  #     tidyr::unnest(repeated_code) %>%
+  #     pull(repeated_code) %>%
+  #     table() %>%
+  #     data.frame() %>%
+  #     `colnames<-`(c("early_code", "repeated")) %>%
+  #     right_join0(new_codes, by = "early_code") %>%
+  #     transmute(
+  #       early_code,
+  #       n_early_codes,
+  #       n_new_codes,
+  #       prop_new_codes,
+  #       prob_repeated = repeated / n_early_codes,
+  #       prob_at_least_one_new = at_least_one_new_code / n_early_codes
+  #     )
+  # }
 
 
   list(
