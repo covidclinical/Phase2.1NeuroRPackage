@@ -160,6 +160,7 @@ runAnalysis <- function() {
   nstay_df <- comp_readmissions %>%
     filter(first_out) %>%
     transmute(patient_num, time_to_first_discharge = days_since_admission - 1)
+
   pre_neuro <- obs_raw %>%
     filter(days_since_admission >= -365 & days_since_admission <= -15) %>%
     right_join(neuro_icds, by = c("concept_code" = "icd")) %>%

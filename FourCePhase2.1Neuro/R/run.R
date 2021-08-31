@@ -233,9 +233,8 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
       event_table1 = data.frame(time = survout[1]$time, n.risk = survout[1]$n.risk, n.event = survout[1]$n.event, n.censor = survout[1]$n.censor, neuro_status = "neuro_postNone")
       event_table2 = data.frame(time = survout[2]$time, n.risk = survout[2]$n.risk, n.event = survout[2]$n.event, n.censor = survout[2]$n.censor, neuro_status = "neuro_postPeripheral")
       event_table3 = data.frame(time = survout[3]$time, n.risk = survout[3]$n.risk, n.event = survout[3]$n.event, n.censor = survout[3]$n.censor, neuro_status = "neuro_postCentral")
-      event_table4 = data.frame(time = survout[4]$time, n.risk = survout[4]$n.risk, n.event = survout[4]$n.event, n.censor = survout[4]$n.censor, neuro_status = "neuro_postBoth")
 
-      event_table_surv_adjust <- rbind(event_table1, event_table2, event_table3, event_table4)
+      event_table_surv_adjust <- rbind(event_table1, event_table2, event_table3)
 
       # mask and blur for obfuscation
       message("blurring event_tables for adjusted survival curves")
@@ -326,6 +325,18 @@ run_hosps <- function(mask_thres,
       TRUE ~ as.character(pns_cns)
     ))
 
+  # count number of Both patients
+  both <- neuro_patients %>%
+    filter(neuro_type == "Both") %>%
+    distinct(patient_num) %>%
+    count() %>%
+    as.integer() %>%
+    blur_mask_int_num(., blur_abs, mask_thres)
+
+  # remove both from neuro_patients df
+  neuro_patients <- neuro_patients %>%
+    filter(!neuro_type == "Both")
+
   neuro_pt_post <- unique(neuro_patients$patient_num)
 
   # calculate mean and median number of codes per patient and neuro_type status
@@ -342,22 +353,6 @@ run_hosps <- function(mask_thres,
            iqr75 = quantile(count, probs = 0.75)) %>%
     ungroup() %>%
     distinct(neuro_type, mean_count, iqr25, median_count, iqr75)
-
-  # calculate mean and median number of cns or pns codes for patients with both
-  n_both_codes_per_patient <- neuro_patients %>%
-    filter(neuro_type == "Both") %>%
-    group_by(patient_num, pns_cns) %>%
-    mutate(count = n()) %>%
-    ungroup() %>%
-    distinct(patient_num, pns_cns, count) %>%
-    select(pns_cns, count) %>%
-    group_by(pns_cns) %>%
-    mutate(mean_count = mean(count),
-           median_count = median(count),
-           iqr25 = quantile(count, probs = 0.25),
-           iqr75 = quantile(count, probs = 0.75)) %>%
-    ungroup() %>%
-    distinct(pns_cns, mean_count, iqr25, median_count, iqr75)
 
 
   non_neuro_patients <-
@@ -429,7 +424,7 @@ run_hosps <- function(mask_thres,
 
   ## -------------------------------------------------------------------------
   ### Part 2: PNS vs CNS
-  neuro_types <- c("None", "Peripheral", "Central", "Both")
+  neuro_types <- c("None", "Peripheral", "Central")
 
   demo_df <- demo_processed %>%
     left_join(distinct(select(neuro_patients, patient_num, neuro_type)),
@@ -456,19 +451,19 @@ run_hosps <- function(mask_thres,
   # Create individual tables for those who met outcome on admission and are
   # exclude from main survival analysis
 
-  surv_exclude_pts <- function(time_to_outcome) {
+  surv_exclude_pts <- function(df, time_to_outcome) {
 
     if (time_to_outcome == "time_to_severe") {
-      demo_subset_df <- demo_df %>%
+      demo_subset_df <- df %>%
         filter(time_to_severe == 0 | time_to_death == 0)
     } else if (time_to_outcome == "time_to_death") {
-      demo_subset_df <- demo_df %>%
+      demo_subset_df <- df %>%
         filter(time_to_death == 0)
     } else if (time_to_outcome == "time_to_first_discharge") {
-      demo_subset_df <- demo_df %>%
+      demo_subset_df <- df %>%
         filter(time_to_first_discharge == 0)
     } else if (time_to_outcome == "time_to_last_discharge") {
-      demo_subset_df <- demo_df %>%
+      demo_subset_df <- df %>%
         filter(time_to_last_discharge == 0)
     }
 
@@ -489,10 +484,10 @@ run_hosps <- function(mask_thres,
     return(obfus_tables)
   }
 
-  severe_adm <- surv_exclude_pts("time_to_severe")
-  death_adm <- surv_exclude_pts("time_to_death")
-  first_adm <- surv_exclude_pts("time_to_first_discharge")
-  last_adm <- surv_exclude_pts("time_to_last_discharge")
+  severe_adm <- surv_exclude_pts(demo_df, "time_to_severe")
+  death_adm <- surv_exclude_pts(demo_df, "time_to_death")
+  first_adm <- surv_exclude_pts(demo_df, "time_to_first_discharge")
+  last_adm <- surv_exclude_pts(demo_df, "time_to_last_discharge")
 
   ## -------------------------------------------------------------------------
   reg_results <- run_regressions(scores_unique, include_race)
@@ -510,8 +505,10 @@ run_hosps <- function(mask_thres,
     first_adm = first_adm,
     last_adm = last_adm,
     n_codes_per_patient = n_codes_per_patient,
-    n_both_codes_per_patient = n_both_codes_per_patient
+    both
   )
+
+  return(results)
 }
 
 get_elix_mat <- function(obs_raw, icd_version, t1 = -365, t2 = -15, map_type = "elixhauser") {
