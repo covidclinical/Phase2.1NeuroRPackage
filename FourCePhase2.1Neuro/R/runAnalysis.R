@@ -236,7 +236,7 @@ runAnalysis <- function() {
     site = CurrSiteId,
     elix_mat = elix_mat,
     deviance_expl = deviance_expl,
-    propagated_codes = propagated_codes,
+    #propagated_codes = propagated_codes,
     first_hosp_results = run_hosps(
       mask_thres,
       blur_abs,
