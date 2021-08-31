@@ -512,7 +512,7 @@ run_hosps <- function(mask_thres,
     first_adm = first_adm,
     last_adm = last_adm,
     n_codes_per_patient = n_codes_per_patient,
-    both
+    both = both
   )
 
   return(results)
