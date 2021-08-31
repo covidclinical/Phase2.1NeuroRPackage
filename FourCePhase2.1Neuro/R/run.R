@@ -312,6 +312,13 @@ run_hosps <- function(mask_thres,
                       pca_covariates) {
   ## -------------------------------------------------------------------------
 
+  # ensure patient_num is character
+  obs_raw$patient_num <- as.character(obs_raw$patient_num)
+  demo_processed$patient_num <- as.character(demo_processed$patient_num)
+  pca_covariates$patient_num <- as.character(pca_covariates$patient_num)
+  index_scores_elix$patient_num <- as.character(index_scores_elix$patient_num)
+  nstay_df$patient_num <- as.character(nstay_df$patient_num)
+
   neuro_patients <- obs_raw %>%
     filter(days_since_admission >= 0) %>%
     right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
