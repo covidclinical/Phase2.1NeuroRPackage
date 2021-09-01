@@ -431,11 +431,11 @@ run_hosps <- function(neuro_patients,
 
 
   ## -------------------------------------------------------------------------
-  reg_results <- run_regressions(scores_unique, include_race)
+  #reg_results <- run_regressions(scores_unique, include_race)
   sub_reg_results <- run_coxregressions(scores_unique, include_race, blur_abs, mask_thres)
 
   ## ----save-results---------------------------------------------------------
-  binary_results <- c(obfus_tables, reg_results, sub_reg_results)
+  binary_results <- c(obfus_tables, sub_reg_results)
 
   ## -------------------------------------------------------------------------
   ### Part 2: PNS vs CNS
@@ -510,11 +510,11 @@ run_hosps <- function(neuro_patients,
   last_adm <- surv_exclude_pts(demo_df, "time_to_last_discharge")
 
   ## -------------------------------------------------------------------------
-  reg_results <- run_regressions(scores_unique, include_race)
+  #reg_results <- run_regressions(scores_unique, include_race)
   sub_reg_results <- run_coxregressions(scores_unique, include_race, blur_abs, mask_thres)
 
   ## ----save-results---------------------------------------------------------
-  cpns_results <- c(obfus_tables, reg_results, sub_reg_results)
+  cpns_results <- c(obfus_tables, sub_reg_results)
 
   results <- list(
     icd_tables = icd_tables,
