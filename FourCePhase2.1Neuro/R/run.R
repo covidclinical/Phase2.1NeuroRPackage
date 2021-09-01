@@ -166,15 +166,19 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
   )
 
   event_table_obfs <- tryCatch(
-    {
 
-      if(dim(output$life$n.censor)[2] == 2) {
+     {
+
+      if (is.null(dim(output$life$n.censor)) == TRUE)  {
+        print("n.censor table is correct")
+      } else {
         output$life$n.censor = data.frame(x=unlist(as.data.frame(output$life$n.censor)))
         colnames(output$life$n.censor) <- "n.censor"
       }
 
+
       message("generating event_tables for cox model")
-      event_table = data.frame(time = output$life$time, n.risk = output$life$n.risk, n.event = output$life$n.event, n.censor = output$life$n.censor)
+      event_table = data.frame(status = output$life$strata, time = output$life$time, n.risk = output$life$n.risk, n.event = output$life$n.event, n.censor = output$life$n.censor)
 
       # mask and blur for obfuscation
       message("blurring event_tables for adjusted survival")
@@ -310,6 +314,7 @@ run_hosps <- function(neuro_patients,
                       non_neuro_patients,
                       neuro_pt_post,
                       both_pts,
+                      both,
                       mask_thres,
                       blur_abs,
                       include_race,
