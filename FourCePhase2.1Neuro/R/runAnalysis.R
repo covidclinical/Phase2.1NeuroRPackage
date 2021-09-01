@@ -145,21 +145,6 @@ runAnalysis <- function() {
     select(patient_num, time_to_first_readmission) %>%
     left_join(n_readms, by = "patient_num")
 
-  temp_neuro <-
-    temporal_neuro(comp_readmissions, obs_raw, neuro_icds, readmissions)
-
-  obs_first_hosp <- temp_neuro$obs_first_hosp
-
-  # 8.31.2021 - will remove this function for now. I don't think this is excluding our "Both" patients
-  # propagated_codes <- temp_neuro$propagated_codes %>%
-  #   blur_it(c("n_early_codes", "n_new_codes"), blur_abs, mask_thres) %>%
-  #   mutate(
-  #     prop_new_codes = if_else(n_early_codes == 0, 0, prop_new_codes),
-  #     prob_repeated = if_else(n_early_codes == 0, 0, prob_repeated),
-  #     prob_at_least_one_new =
-  #       if_else(n_early_codes == 0, 0, prob_at_least_one_new)
-  #   )
-
   nstay_df <- comp_readmissions %>%
     filter(first_out) %>%
     transmute(patient_num, time_to_first_discharge = days_since_admission - 1)
@@ -173,9 +158,6 @@ runAnalysis <- function() {
     pivot_wider(id_cols = patient_num, names_from = pns_cns, values_from = value, values_fill = 0) %>%
     rename(pre_admission_cns = Central,
            pre_admission_pns = Peripheral)
-
-  pre_cns_summary <- summary(pre_neuro$pre_admission_cns)
-  pre_pns_summary <- summary(pre_neuro$pre_admission_pns)
 
   demo_processed_first <- demo_raw %>%
     mutate(
@@ -199,6 +181,83 @@ runAnalysis <- function() {
                     pre_admission_cns = 0,
                     pre_admission_pns = 0))
 
+  # identify patient's who are still in the hospital
+  # this information will help us select the icd codes during first hospitalization
+  in_hospital <- demo_processed_first %>%
+    filter(is.na(time_to_first_discharge)) %>%
+    distinct(patient_num, still_in_hospital)
+
+  temp_neuro <-
+    temporal_neuro(comp_readmissions, obs_raw, neuro_icds, readmissions, in_hospital)
+
+  obs_first_hosp <- temp_neuro$obs_first_hosp
+
+  # 8.31.2021 - will remove this function for now. I don't think this is excluding our "Both" patients
+  # propagated_codes <- temp_neuro$propagated_codes %>%
+  #   blur_it(c("n_early_codes", "n_new_codes"), blur_abs, mask_thres) %>%
+  #   mutate(
+  #     prop_new_codes = if_else(n_early_codes == 0, 0, prop_new_codes),
+  #     prob_repeated = if_else(n_early_codes == 0, 0, prob_repeated),
+  #     prob_at_least_one_new =
+  #       if_else(n_early_codes == 0, 0, prob_at_least_one_new)
+  #   )
+
+  # need to identify patients with "Both" neuro cns and pns codes during neuro admission
+  neuro_patients <- obs_first_hosp %>%
+    filter(days_since_admission >= 0) %>%
+    right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
+    filter(!is.na(patient_num)) %>%
+    distinct(patient_num, concept_code, pns_cns) %>%
+    group_by(patient_num) %>%
+    mutate(nerv_sys_count = length(unique(pns_cns))) %>%
+    ungroup() %>%
+    mutate(neuro_type = case_when(
+      nerv_sys_count == 2 ~ "Both",
+      TRUE ~ as.character(pns_cns)
+    ))
+
+  # count number of Both patients
+  both_pts <- neuro_patients %>%
+    filter(neuro_type == "Both") %>%
+    distinct(patient_num)
+
+  both <- both_pts %>%
+    count() %>%
+    as.integer() %>%
+    blur_mask_int_num(., blur_abs, mask_thres)
+
+  # remove both from neuro_patients df
+  neuro_patients <- neuro_patients %>%
+    filter(!neuro_type == "Both")
+
+  neuro_pt_post <- unique(neuro_patients$patient_num)
+
+  # calculate mean and median number of codes per patient and neuro_type status
+  n_codes_per_patient <- neuro_patients %>%
+    group_by(patient_num, neuro_type) %>%
+    mutate(count = n()) %>%
+    ungroup() %>%
+    distinct(patient_num, neuro_type, count) %>%
+    select(neuro_type, count) %>%
+    group_by(neuro_type) %>%
+    mutate(mean_count = mean(count),
+           median_count = median(count),
+           iqr25 = quantile(count, probs = 0.25),
+           iqr75 = quantile(count, probs = 0.75)) %>%
+    ungroup() %>%
+    distinct(neuro_type, mean_count, iqr25, median_count, iqr75)
+
+  non_neuro_patients <-
+    data.frame(patient_num = setdiff(demo_processed_first$patient_num, neuro_pt_post)) %>%
+    mutate(concept_code = "NN") %>%
+    # remove both patients
+    filter(!patient_num %in% both_pts$patient_num)
+
+  # remove both patients from obs_first_hosp and demo_processed_first dataframe
+  obs_first_hosp <- obs_first_hosp %>% filter(!patient_num %in% both_pts$patient_num)
+  demo_processed_first <- demo_processed_first %>% filter(!patient_num %in% both_pts$patient_num)
+  demo_raw <- demo_raw %>% filter(!patient_num %in% both_pts$patient_num)
+
   comorb_list <- get_elix_mat(obs_first_hosp, icd_version)
 
   index_scores_elix <- comorb_list$index_scores_elix
@@ -206,6 +265,10 @@ runAnalysis <- function() {
   # ensure data is formatted correctly
   index_scores_elix$patient_num <- as.character(index_scores_elix$patient_num)
   demo_raw$patient_num <- as.character(demo_raw$patient_num)
+  obs_raw$patient_num <- as.character(obs_raw$patient_num)
+  demo_processed_first$patient_num <- as.character(demo_processed_first$patient_num)
+  index_scores_elix$patient_num <- as.character(index_scores_elix$patient_num)
+  nstay_df$patient_num <- as.character(nstay_df$patient_num)
 
   index_scores_elix <- index_scores_elix %>%
     right_join0(select(demo_raw, patient_num), by = "patient_num")
@@ -216,6 +279,31 @@ runAnalysis <- function() {
     index_scores_elix,
     -c(patient_num, elixhauser_score)
   ))
+
+  # individual comorbidity matrixes
+  cns_pts <- neuro_patients %>%
+    filter(pns_cns == "Central") %>%
+    distinct(patient_num)
+
+  pns_pts <- neuro_patients %>%
+    filter(pns_cns == "Peripheral") %>%
+    distinct(patient_num)
+
+  index_scores_elix_cns <- index_scores_elix %>% filter(patient_num %in% cns_pts$patient_num)
+  index_scores_elix_pns <- index_scores_elix %>% filter(patient_num %in% pns_pts$patient_num)
+
+  elix_mat_cns <-
+    cor(select(
+    index_scores_elix_cns,
+    -c(patient_num, elixhauser_score)
+  ))
+
+  elix_mat_pns <-
+    cor(select(
+      index_scores_elix_pns,
+      -c(patient_num, elixhauser_score)
+    ))
+
 
   elix_pca <- index_scores_elix %>%
     select(-elixhauser_score) %>%
@@ -259,9 +347,20 @@ runAnalysis <- function() {
   results$mapped_codes_table_obfus <- mapped_codes_table_obfus %>%
     filter(!n_patients == 0)
 
+  # remove "Both" patients from pre_neuro
+  pre_neuro <- pre_neuro %>%
+    filter(!patient_num %in% both_pts$patient_num)
+
+  pre_cns_summary <- summary(pre_neuro$pre_admission_cns)
+  pre_pns_summary <- summary(pre_neuro$pre_admission_pns)
+
   # add the pre cns and pns summaries
   results$pre_cns_summary <- pre_cns_summary
   results$pre_pns_summary <- pre_pns_summary
+
+  # add elixhauser matrixes
+  results$elix_mat_cns <- elix_mat_cns
+  results$elix_mat_pns <- elix_mat_pns
 
   rm(list = setdiff(ls(), c("CurrSiteId", "results")))
 
