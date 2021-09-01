@@ -207,7 +207,7 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
     output$life$table <- NULL
   }
 
-  if (length(unique(surv_df$neuro_post)) == 4) {
+  if (length(unique(surv_df$neuro_post)) == 3) {
 
   # average survival functions
   average_survival <- tryCatch(
