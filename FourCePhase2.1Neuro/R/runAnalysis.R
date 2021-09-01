@@ -329,6 +329,7 @@ runAnalysis <- function() {
       neuro_pt_post,
       non_neuro_patients,
       both_pts,
+      both,
       mask_thres,
       blur_abs,
       include_race,
