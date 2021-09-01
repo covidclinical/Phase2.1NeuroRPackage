@@ -475,10 +475,14 @@ run_hosps <- function(mask_thres,
         filter(time_to_death == 0)
     } else if (time_to_outcome == "time_to_first_discharge") {
       demo_subset_df <- df %>%
-        filter(time_to_first_discharge == 0)
+        mutate(death_before_outcome = case_when(time_to_death <= 0 ~ 1,
+                                                TRUE ~ 0)) %>%
+        filter(time_to_first_discharge == 0 & death_before_outcome == 0)
     } else if (time_to_outcome == "time_to_last_discharge") {
       demo_subset_df <- df %>%
-        filter(time_to_last_discharge == 0)
+        mutate(death_before_outcome = case_when(time_to_death <= 0 ~ 1,
+                                                TRUE ~ 0)) %>%
+        filter(time_to_last_discharge == 0 & death_before_outcome == 0)
     }
 
     scores_unique <- index_scores_elix %>%
