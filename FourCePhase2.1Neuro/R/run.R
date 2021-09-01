@@ -311,8 +311,8 @@ run_coxregressions <- function(df, include_race = TRUE, blur_abs, mask_thres) {
 }
 
 run_hosps <- function(neuro_patients,
-                      non_neuro_patients,
                       neuro_pt_post,
+                      non_neuro_patients,
                       both_pts,
                       both,
                       mask_thres,
@@ -437,9 +437,12 @@ run_hosps <- function(neuro_patients,
   ) %>%
     lapply(function(x) mutate(x, site = currSiteId))
 
+  message("Start Binary Analysis")
+  binary = TRUE
+  print(binary == TRUE)
 
   ## -------------------------------------------------------------------------
-  #reg_results <- run_regressions(scores_unique, include_race)
+  reg_results <- run_regressions(scores_unique, include_race)
   sub_reg_results <- run_coxregressions(scores_unique, include_race, blur_abs, mask_thres)
 
   ## ----save-results---------------------------------------------------------
@@ -447,6 +450,10 @@ run_hosps <- function(neuro_patients,
 
   ## -------------------------------------------------------------------------
   ### Part 2: PNS vs CNS
+  message("Start CNS vs PNS Analysis")
+  binary = FALSE
+  print(binary == FALSE)
+
   neuro_types <- c("None", "Peripheral", "Central")
 
   demo_df <- demo_processed %>%
@@ -518,7 +525,7 @@ run_hosps <- function(neuro_patients,
   last_adm <- surv_exclude_pts(demo_df, "time_to_last_discharge")
 
   ## -------------------------------------------------------------------------
-  #reg_results <- run_regressions(scores_unique, include_race)
+  reg_results <- run_regressions(scores_unique, include_race)
   sub_reg_results <- run_coxregressions(scores_unique, include_race, blur_abs, mask_thres)
 
   ## ----save-results---------------------------------------------------------
