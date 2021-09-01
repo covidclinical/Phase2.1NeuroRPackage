@@ -326,6 +326,7 @@ runAnalysis <- function() {
     #propagated_codes = propagated_codes,
     first_hosp_results = run_hosps(
       neuro_patients,
+      non_neuro_patients,
       both_pts,
       mask_thres,
       blur_abs,
