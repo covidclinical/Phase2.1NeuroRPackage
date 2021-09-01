@@ -306,7 +306,9 @@ run_coxregressions <- function(df, include_race = TRUE, blur_abs, mask_thres) {
   )
 }
 
-run_hosps <- function(mask_thres,
+run_hosps <- function(neuro_patients,
+                      both_pts,
+                      mask_thres,
                       blur_abs,
                       include_race,
                       currSiteId,
