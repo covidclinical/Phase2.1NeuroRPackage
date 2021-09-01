@@ -365,6 +365,9 @@ runAnalysis <- function() {
   results$elix_mat_cns <- elix_mat_cns
   results$elix_mat_pns <- elix_mat_pns
 
+  # add n_codes_per_patients dataframe
+  results$n_codes_per_patient <- n_codes_per_patient
+
   rm(list = setdiff(ls(), c("CurrSiteId", "results")))
 
   site_results <- paste0(CurrSiteId, "_results")

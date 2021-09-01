@@ -527,7 +527,6 @@ run_hosps <- function(neuro_patients,
     death_adm = death_adm,
     first_adm = first_adm,
     last_adm = last_adm,
-    n_codes_per_patient = n_codes_per_patient,
     both = both
   )
 
