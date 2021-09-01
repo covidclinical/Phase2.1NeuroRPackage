@@ -388,8 +388,9 @@ run_hosps <- function(neuro_patients,
   ## -------------------------------------------------------------------------
   # optional
   nstay_df <- neuro_patients %>%
+    data.frame() %>%
     select(patient_num, concept_code) %>%
-    bind_rows(non_neuro_patients) %>%
+    rbind(non_neuro_patients) %>%
     left_join(demo_processed, by = "patient_num") %>%
     mutate(concept_code = fct_reorder(concept_code, time_to_first_discharge)) %>%
     left_join(neuro_icds, by = c("concept_code" = "icd"))
