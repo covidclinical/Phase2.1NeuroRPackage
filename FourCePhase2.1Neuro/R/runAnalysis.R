@@ -304,7 +304,6 @@ runAnalysis <- function() {
       -c(patient_num, elixhauser_score)
     ))
 
-
   elix_pca <- index_scores_elix %>%
     select(-elixhauser_score) %>%
     tibble::column_to_rownames("patient_num") %>%
@@ -326,6 +325,8 @@ runAnalysis <- function() {
     deviance_expl = deviance_expl,
     #propagated_codes = propagated_codes,
     first_hosp_results = run_hosps(
+      neuro_patients,
+      both_pts,
       mask_thres,
       blur_abs,
       include_race,
