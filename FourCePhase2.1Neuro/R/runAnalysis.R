@@ -322,6 +322,8 @@ runAnalysis <- function() {
   results <- list(
     site = CurrSiteId,
     elix_mat = elix_mat,
+    elix_mat_cns = elix_mat_cns,
+    elix_mat_pns = elix_mat_cns,
     deviance_expl = deviance_expl,
     #propagated_codes = propagated_codes,
     first_hosp_results = run_hosps(
@@ -361,10 +363,6 @@ runAnalysis <- function() {
   # add the pre cns and pns summaries
   results$pre_cns_summary <- pre_cns_summary
   results$pre_pns_summary <- pre_pns_summary
-
-  # add elixhauser matrixes
-  results$elix_mat_cns <- elix_mat_cns
-  results$elix_mat_pns <- elix_mat_pns
 
   # add n_codes_per_patients dataframe
   results$n_codes_per_patient <- n_codes_per_patient
