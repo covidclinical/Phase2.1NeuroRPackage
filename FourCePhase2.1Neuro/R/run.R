@@ -233,16 +233,17 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
 
       # create a new data frame to create indicators for neuro status
       # each neuro status will have the same mean for each covariate
-      newdata=data.frame(rbind(c(0,0,0,meancovariate[-(1:3)]),
-                               c(1,0,0,meancovariate[-(1:3)]),
-                               c(0,1,0,meancovariate[-(1:3)]),
-                               c(0,0,1,meancovariate[-(1:3)])))
+      newdata=data.frame(rbind(c(0,0,meancovariate[-(1:2)]),
+                               c(1,0,meancovariate[-(1:2)]),
+                               c(0,1,meancovariate[-(1:2)])))
       colnames(newdata)=names(meancovariate)
       survout=survival::survfit(cox,newdata)
+      survout = survout %>% summary()
+
       message("generating event_tables for adjusted survival curves")
-      event_table1 = data.frame(time = survout[1]$time, n.risk = survout[1]$n.risk, n.event = survout[1]$n.event, n.censor = survout[1]$n.censor, neuro_status = "neuro_postNone")
-      event_table2 = data.frame(time = survout[2]$time, n.risk = survout[2]$n.risk, n.event = survout[2]$n.event, n.censor = survout[2]$n.censor, neuro_status = "neuro_postPeripheral")
-      event_table3 = data.frame(time = survout[3]$time, n.risk = survout[3]$n.risk, n.event = survout[3]$n.event, n.censor = survout[3]$n.censor, neuro_status = "neuro_postCentral")
+      event_table1 = data.frame(time = survout$time, n.risk = survout$n.risk, n.event = survout$n.event, n.censor = survout$n.censor, neuro_status = "neuro_postNone")
+      event_table2 = data.frame(time = survout$time, n.risk = survout$n.risk, n.event = survout$n.event, n.censor = survout$n.censor, neuro_status = "neuro_postPeripheral")
+      event_table3 = data.frame(time = survout$time, n.risk = survout$n.risk, n.event = survout$n.event, n.censor = survout$n.censor, neuro_status = "neuro_postCentral")
 
       event_table_surv_adjust <- rbind(event_table1, event_table2, event_table3)
 
@@ -252,7 +253,7 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
 
       cox <- cox %>% summary()
 
-      average_survival =list("cox"=cox,"survf"=survout, "event_table_obfs" = event_table_obfs)
+      average_survival = list("cox"=cox,"survf"=survout, "event_table_obfs" = event_table_obfs)
 
     },
     error = function(cond) {
