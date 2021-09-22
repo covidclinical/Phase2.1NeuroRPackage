@@ -507,16 +507,26 @@ run_hosps <- function(neuro_patients,
       right_join0(demo_subset_df, by = "patient_num") %>%
       left_join(pca_covariates, by = "patient_num")
 
-    obfus_tables <- get_tables(
-      neuro_types,
-      demo_subset_df,
-      scores_unique,
-      comorb_names_elix,
-      blur_abs,
-      mask_thres
-    ) %>%
-      lapply(function(x) mutate(x, site = currSiteId))
 
+    obfus_tables <- tryCatch(
+      {
+        get_tables(
+          neuro_types,
+          demo_subset_df,
+          scores_unique,
+          comorb_names_elix,
+          blur_abs,
+          mask_thres
+        ) %>%
+        lapply(function(x) mutate(x, site = currSiteId))
+      },
+      error = function(cond) {
+        message("Original error message:")
+        message(cond)
+        message("No data to subset. Skipping for now...")
+        return(NULL) # return NA in case of error
+      }
+    )
     return(obfus_tables)
   }
 
