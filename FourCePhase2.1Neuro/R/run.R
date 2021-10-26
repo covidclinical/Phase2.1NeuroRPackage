@@ -171,9 +171,11 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
 
       if (is.null(dim(output$life$n.censor)) == TRUE)  {
         print("n.censor table is correct")
+        print(names(output$life))
       } else {
         output$life$n.censor = data.frame(x=unlist(as.data.frame(output$life$n.censor)))
         colnames(output$life$n.censor) <- "n.censor"
+        print(names(output$life))
       }
 
 
