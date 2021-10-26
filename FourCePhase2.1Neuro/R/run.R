@@ -143,10 +143,11 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
       select(patient_num, delta, time, all_of(ind_vars)) %>%
       filter(!(time == 0 & delta == 1))
 
-    message('Print surv_df colnames')
-    print(colnames(surv_df))
-
   }
+
+  message('Print surv_df colnames')
+  print(colnames(surv_df))
+
 
   output <- tryCatch(
     {
@@ -171,14 +172,14 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
     }
   )
 
+  message('Print length(output). This should be two')
+  print(length(output))
+  message('Print names(output). This should be cox and life')
+  print(names(output))
+
   event_table_obfs <- tryCatch(
 
-    message('Print length(output). This should be two')
-    print(length(output))
-    message('Print names(output). This should be cox and life')
-    print(names(output))
-
-     {
+       {
 
       if (is.null(dim(output$life$n.censor)) == TRUE)  {
         print("n.censor table is correct")
