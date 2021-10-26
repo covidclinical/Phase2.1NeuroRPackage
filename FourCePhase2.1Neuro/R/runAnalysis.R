@@ -181,6 +181,20 @@ runAnalysis <- function() {
                     pre_admission_cns = 0,
                     pre_admission_pns = 0))
 
+  # handle cases when a site may not have any cases of pre_admission codes
+  if ("pre_admission_cns" %in% colnames(demo_processed_first)) {
+    print("pre_admission_cns available")
+  } else {
+    demo_processed_first$pre_admission_cns <- 0
+  }
+
+  if ("pre_admission_pns" %in% colnames(demo_processed_first)) {
+    print("pre_admission_pns available")
+  } else {
+    demo_processed_first$pre_admission_pns <- 0
+  }
+
+
   # identify patient's who are still in the hospital
   # this information will help us select the icd codes during first hospitalization
   in_hospital <- demo_processed_first %>%
