@@ -96,6 +96,8 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
 
   message('Print df colnames')
   print(colnames(df))
+  message('Print number or df rows')
+  print(nrow(df))
 
   if (depend_var == "deceased") {
     surv_df <- df %>%
@@ -147,7 +149,8 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
 
   message('Print surv_df colnames')
   print(colnames(surv_df))
-
+  message('Print number or df rows')
+  print(nrow(surv_df))
 
   output <- tryCatch(
     {
@@ -155,7 +158,7 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
         cox = "survival::Surv(time, delta==1)" %>%
           paste("~", independ_vars) %>%
           as.formula() %>%
-          survival::coxph(data = surv_df, id = patient_num) %>%
+          survival::coxph(data = surv_df) %>% #blocking out inclusion of #id = patient_num) to see if it fixes BCH problem
           summary(),
         life = "survival::Surv(time, delta==1) ~ neuro_post" %>%
           as.formula() %>%
