@@ -98,6 +98,8 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
   print(colnames(df))
   message('Print number or df rows')
   print(nrow(df))
+  message('Is patient_num a character?')
+  print(is.character(df$patient_num))
 
   if (depend_var == "deceased") {
     surv_df <- df %>%
