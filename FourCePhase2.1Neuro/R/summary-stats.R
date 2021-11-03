@@ -217,16 +217,39 @@ get_table1 <- function(
   proppat_col = sym(paste('prop', pat_col, sep = '_'))
   comorbidities_map = comorbidities$Abbreviation
 
-  df %>%
+  message("Print comorbidities")
+  print(comorbidities)
+
+  df <- df %>%
     select(all_of(comorbidities_map)) %>%
     colSums() %>%
-    data.frame(n_patients = .) %>%
-    tibble::rownames_to_column("Abbreviation") %>%
+    data.frame(n_patients = .)
+
+  message("Print row names to evalaute abbreviations")
+  print(rownames(df))
+
+  df <- df %>% tibble::rownames_to_column("Abbreviation")
+
+  message("Print row names again to evalaute abbreviations.These will be numbers now.")
+  print(rownames(df))
+  message("Print Abbreviation column")
+  print(df$Abbreviation)
+
+  df <- df %>%
     blur_it('n_patients', ...) %>%
     mutate(prop_patients = n_patients/num_pats) %>%
     rename(!!npat_col := n_patients,
            !!proppat_col := prop_patients) %>%
     right_join(comorbidities, ., by = "Abbreviation")
+
+  message("Print row names to evalaute abbreviations")
+  print(rownames(df))
+  message("Print Abbreviation column")
+  print(df$Abbreviation)
+  message("Print Comorbidity column")
+  print(df$Comorbidity)
+
+  df
 }
 
 list_table1 <- function(x, df, num_pats, comorb_names, group_var, ...){
