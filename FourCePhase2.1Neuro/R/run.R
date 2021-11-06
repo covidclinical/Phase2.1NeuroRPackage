@@ -96,14 +96,14 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
 
   message('Print df colnames')
   print(colnames(df))
-  message('Print number or df rows')
-  print(nrow(df))
+  # message('Print number or df rows')
+  # print(nrow(df))
   message('Is patient_num a character?')
   print(is.character(df$patient_num))
-  message('count rows')
-  print(nrow(df))
-  message('print unique patients')
-  print(nrow(unique(data.frame(df$patient_num))))
+  # message('count rows')
+  # print(nrow(df))
+  # message('print unique patients')
+  # print(nrow(unique(data.frame(df$patient_num))))
 
   if (depend_var == "deceased") {
     surv_df <- df %>%
@@ -155,12 +155,12 @@ run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
 
   message('Print surv_df colnames')
   print(colnames(surv_df))
-  message('Print number or df rows')
-  print(nrow(surv_df))
-  message('count rows')
-  print(nrow(surv_df))
-  message('print unique patients')
-  print(nrow(unique(data.frame(surv_df$patient_num))))
+  #message('Print number or df rows')
+  #print(nrow(surv_df))
+  #message('count rows')
+  #print(nrow(surv_df))
+  #message('print unique patients')
+  #print(nrow(unique(data.frame(surv_df$patient_num))))
 
   output <- tryCatch(
     {
