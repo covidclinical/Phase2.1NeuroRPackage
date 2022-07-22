@@ -42,7 +42,7 @@ runAnalysis <- function() {
 
   # count mask threshold
   # absolute max of blurring range
-  VA_site <- FALSE
+  # VA_site <- FALSE
 
   if (VA_site) {
     clin_raw <- clin_raw %>%
@@ -149,6 +149,7 @@ runAnalysis <- function() {
     filter(first_out) %>%
     transmute(patient_num, time_to_first_discharge = days_since_admission - 1)
 
+  # patients with neuro conditions prior to admission
   pre_neuro <- obs_raw %>%
     filter(days_since_admission >= -365 & days_since_admission <= -15) %>%
     right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
@@ -221,7 +222,12 @@ runAnalysis <- function() {
     filter(days_since_admission >= 0) %>%
     right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
     filter(!is.na(patient_num)) %>%
-    distinct(patient_num, concept_code, pns_cns) %>%
+    # for each patient, calculate time to first cns and time to first pns
+    group_by(patient_num, pns_cns) %>%
+    mutate(time_to_cns = ifelse(pns_cns == "Central", min(days_since_admission), NA),
+           time_to_pns = ifelse(pns_cns == "Peripheral", min(days_since_admission), NA)) %>%
+    distinct(patient_num, concept_code, pns_cns, time_to_cns, time_to_pns) %>%
+    ungroup() %>%
     group_by(patient_num) %>%
     mutate(nerv_sys_count = length(unique(pns_cns))) %>%
     ungroup() %>%
@@ -242,7 +248,10 @@ runAnalysis <- function() {
 
   # remove both from neuro_patients df
   neuro_patients <- neuro_patients %>%
-    filter(!neuro_type == "Both")
+    filter(!neuro_type == "Both") %>%
+    # consolidate the 'time_to_cns' and 'time_to_pns' as 'time_to_neuro'
+    mutate(time_to_neuro = if_else(pns_cns == "Central", time_to_cns, time_to_pns)) %>%
+    select(-time_to_cns, -time_to_pns)
 
   neuro_pt_post <- unique(neuro_patients$patient_num)
 
@@ -332,6 +341,13 @@ runAnalysis <- function() {
     data.frame() %>%
     `colnames<-`(paste0(".fittedPC", 1:10)) %>%
     tibble::rownames_to_column("patient_num")
+
+  ## save NWU tables of comorbidities and patient-level data
+  #save(pca_covariates, file = "nwu_analysis/pca_covariates.rda")
+  #save(index_scores_elix, file = "nwu_analysis/index_scores_elix.rda")
+  #save(neuro_patients, file = "nwu_analysis/neuro_patients.rda")
+  #save(demo_processed_first, file = "nwu_analysis/demo_processed_first.rda")
+  #save(both_pts, file = "nwu_analysis/both_pts.rda")
 
   results <- list(
     site = CurrSiteId,

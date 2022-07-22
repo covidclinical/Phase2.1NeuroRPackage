@@ -442,39 +442,40 @@ run_hosps <- function(neuro_patients,
 
   ## -------------------------------------------------------------------------
   # Part 1: Binary outcome: neuro vs. non_neuro
-  demo_df <- demo_processed %>%
-    filter(!patient_num %in% both_pts$patient_num) %>%
-    mutate(neuro_post = patient_num %in% neuro_pt_post %>%
-      as.factor() %>%
-      fct_recode(
-        neuro_cond = "TRUE",
-        no_neuro_cond = "FALSE"
-      ))
-
-  scores_unique <- index_scores_elix %>%
-    right_join0(demo_df, by = "patient_num") %>%
-    left_join(pca_covariates, by = "patient_num")
-
-  obfus_tables <- get_tables(
-    c("no_neuro_cond", "neuro_cond"),
-    demo_df,
-    scores_unique,
-    comorb_names_elix,
-    blur_abs,
-    mask_thres
-  ) %>%
-    lapply(function(x) mutate(x, site = currSiteId))
-
-  message("Start Binary Analysis")
-  binary = TRUE
-  print(binary == TRUE)
+  # update July 21, 2022: We will not run the binary analysis
+  # demo_df <- demo_processed %>%
+  #   filter(!patient_num %in% both_pts$patient_num) %>%
+  #   mutate(neuro_post = patient_num %in% neuro_pt_post %>%
+  #     as.factor() %>%
+  #     fct_recode(
+  #       neuro_cond = "TRUE",
+  #       no_neuro_cond = "FALSE"
+  #     ))
+  # 
+  # scores_unique <- index_scores_elix %>%
+  #   right_join0(demo_df, by = "patient_num") %>%
+  #   left_join(pca_covariates, by = "patient_num")
+  # 
+  # obfus_tables <- get_tables(
+  #   c("no_neuro_cond", "neuro_cond"),
+  #   demo_df,
+  #   scores_unique,
+  #   comorb_names_elix,
+  #   blur_abs,
+  #   mask_thres
+  # ) %>%
+  #   lapply(function(x) mutate(x, site = currSiteId))
+  # 
+  # message("Start Binary Analysis")
+  # binary = TRUE
+  # print(binary == TRUE)
 
   ## -------------------------------------------------------------------------
-  reg_results <- run_regressions(scores_unique, include_race)
-  sub_reg_results <- run_coxregressions(scores_unique, include_race, blur_abs, mask_thres)
+  #reg_results <- run_regressions(scores_unique, include_race)
+  #sub_reg_results <- run_coxregressions(scores_unique, include_race, blur_abs, mask_thres)
 
   ## ----save-results---------------------------------------------------------
-  binary_results <- c(obfus_tables, sub_reg_results)
+  #binary_results <- c(obfus_tables, sub_reg_results)
 
   ## -------------------------------------------------------------------------
   ### Part 2: PNS vs CNS
@@ -486,7 +487,7 @@ run_hosps <- function(neuro_patients,
 
   demo_df <- demo_processed %>%
     filter(!patient_num %in% both_pts$patient_num) %>%
-    left_join(distinct(select(neuro_patients, patient_num, neuro_type)),
+    left_join(distinct(select(neuro_patients, patient_num, neuro_type, time_to_neuro)),
       by = "patient_num"
     ) %>%
     replace_na(list(neuro_type = "None")) %>%
@@ -571,7 +572,7 @@ run_hosps <- function(neuro_patients,
 
   results <- list(
     icd_tables = icd_tables,
-    binary_results = binary_results,
+    #binary_results = binary_results,
     cpns_results = cpns_results,
     severe_adm = severe_adm,
     death_adm = death_adm,
@@ -615,15 +616,18 @@ get_elix_mat <- function(obs_raw, icd_version, t1 = -365, t2 = -15, map_type = "
   return(comorb_list)
 }
 
+# return icd codes for patients during their first hospitalization as determined via 'first_out' or who are still 'in_hospital' when the data was pulled
 temporal_neuro <- function(comp_readmissions, obs_raw, neuro_icds, readmissions, in_hospital) {
 
   obs_first_hosp <- comp_readmissions %>%
     left_join(., in_hospital, by = "patient_num") %>%
     filter(first_out | still_in_hospital == 1) %>%
     # days since admission the patient is out of hospital
+    # here we just rename 'days_since_admission' to 'dsa'
     transmute(patient_num, dsa = days_since_admission) %>%
     right_join(obs_raw, by = "patient_num") %>%
-    filter(days_since_admission < dsa) %>%
+    # keep the observations that occurred after or on the 'dsa'
+    filter(days_since_admission <= dsa) %>%
     select(-dsa)
 
   #8.31.2021 - will remove the functions for propagated codes for now. I don't think this is excluding our "Both" patients
