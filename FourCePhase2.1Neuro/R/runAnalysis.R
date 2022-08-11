@@ -119,8 +119,10 @@ runAnalysis <- function() {
         delta_hospitalized == -1 & !duplicated(delta_hospitalized == -1),
       first_change =
         first_out |
-          (delta_hospitalized == 1 &
-            !duplicated(delta_hospitalized == 1))
+        (delta_hospitalized == 1 &
+           !duplicated(delta_hospitalized == 1)),
+      first_discharge_date = case_when(first_out==TRUE ~ lag(calendar_date)),
+      first_discharge_date = min(first_discharge_date, na.rm = TRUE)
     ) %>%
     ungroup()
 
@@ -176,6 +178,7 @@ runAnalysis <- function() {
         fct_recode(Alive = "0", Deceased = "1")
     ) %>%
     left_join(nstay_df, by = "patient_num") %>%
+    left_join(comp_readmissions %>% distinct(patient_num, first_discharge_date), by = "patient_num") %>%
     left_join(readmissions, by = "patient_num") %>%
     left_join(pre_neuro, by = "patient_num") %>%
     replace_na(list(n_readmissions = 0,
