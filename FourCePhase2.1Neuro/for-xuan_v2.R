@@ -8,8 +8,12 @@ library(remotes)
 library(stringr)
 library(lubridate)
 library(broom)
+#library("devtools")
+#install_github("andland/logisticPCA")
 library(logisticPCA)
 library(survival)
+
+setwd("/4ceData/Phase2.1NeuroRPackage/FourCePhase2.1Neuro")
 
 set.seed(446) # for obfuscation posterity
 
@@ -31,13 +35,13 @@ source("R/utils.R")
 ## Review the below parameters to make sure they are set appropriately for your site ##
 
 # Set to FALSE if not running VA data
-VA_site <- TRUE
+VA_site <- FALSE
 
 # set to 4CE Data directory
-data_dir = "../../Input"
+data_dir = "/4ceData/Input"
 
 # change siteID
-currSiteId = "VA1"
+currSiteId = "NWU"
 
 #### Start running analysis ####
 
@@ -126,7 +130,9 @@ comp_readmissions <- clin_raw %>%
     first_change =
       first_out |
       (delta_hospitalized == 1 &
-         !duplicated(delta_hospitalized == 1))
+         !duplicated(delta_hospitalized == 1)),
+    first_discharge_date = case_when(first_out==TRUE ~ lag(calendar_date)),
+    first_discharge_date = min(first_discharge_date, na.rm = TRUE)
   ) %>%
   ungroup()
 
@@ -182,6 +188,7 @@ demo_processed_first <- demo_raw %>%
       fct_recode(Alive = "0", Deceased = "1")
   ) %>%
   left_join(nstay_df, by = "patient_num") %>%
+  left_join(comp_readmissions %>% distinct(patient_num, first_discharge_date), by = "patient_num") %>%
   left_join(readmissions, by = "patient_num") %>%
   left_join(pre_neuro, by = "patient_num") %>%
   replace_na(list(n_readmissions = 0,
@@ -351,11 +358,30 @@ pca_covariates <- lpca_fit$PCs %>%
 obs_raw = obs_first_hosp
 demo_processed = demo_processed_first
 
-
 ### Part 2: PNS vs CNS
 message("Start CNS vs PNS Analysis")
 binary = FALSE
 print(binary == FALSE)
+
+nstay_df <- neuro_patients %>%
+  data.frame() %>%
+  select(patient_num, concept_code) %>%
+  rbind(non_neuro_patients) %>%
+  left_join(demo_processed, by = "patient_num") %>%
+  mutate(concept_code = fct_reorder(concept_code, time_to_first_discharge)) %>%
+  left_join(neuro_icds, by = c("concept_code" = "icd"))
+
+comorb_names_elix <- get_quan_elix_names()
+
+icd_tables <- get_tables(
+  c("no_neuro_cond", "neuro_cond"),
+  nstay_df,
+  right_join0(index_scores_elix, nstay_df, by = "patient_num"),
+  comorb_names_elix,
+  blur_abs,
+  mask_thres,
+  "concept_code"
+)[-3] # last element is not useful, remove
 
 neuro_types <- c("None", "Peripheral", "Central")
 
@@ -405,12 +431,10 @@ surv_exclude_pts <- function(df, time_to_outcome) {
       filter(time_to_last_discharge == 0 & death_before_outcome == 0)
   }
 
-
   # dataframe for the survival analysis
   scores_unique <- index_scores_elix %>%
     right_join0(demo_subset_df, by = "patient_num") %>%
     left_join(pca_covariates, by = "patient_num")
-
 
   obfus_tables <- tryCatch(
     {
@@ -438,6 +462,25 @@ severe_adm <- surv_exclude_pts(demo_df, "time_to_severe")
 death_adm <- surv_exclude_pts(demo_df, "time_to_death")
 first_adm <- surv_exclude_pts(demo_df, "time_to_first_discharge")
 last_adm <- surv_exclude_pts(demo_df, "time_to_last_discharge")
+
+# Run Xuan's new code in from-xuan-runcox0725022.r
+
+df <- scores_unique
+ind_vars <- get_ind_vars(df, include_race)
+tcut=60
+source('from-xuan-runcox07252022.r')
+
+xuan_results <- list()
+deceased_results <- run_coxregression(df, 'deceased', ind_vars, tcut=tcut)
+severe_results <- run_coxregression(df, 'severe', ind_vars, tcut=tcut)
+los_results <- run_coxregression(df, 'time_to_first_discharge', ind_vars, tcut=tcut)
+
+xuan_results <- c("deceased_results" = deceased_results,
+                  "severe_results" = severe_results,
+                  "los_results" = los_results)
+
+
+## Old results ------------------------------------------------------------
 
 ## -------------------------------------------------------------------------
 #reg_results <- run_regressions(scores_unique, include_race)
