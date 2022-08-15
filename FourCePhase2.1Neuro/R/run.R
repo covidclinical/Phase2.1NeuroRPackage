@@ -1,58 +1,4 @@
-
-run_regression <-
-  function(df, depend_var, ind_vars, binary = TRUE) {
-    if (length(unique(df[, depend_var, drop = T])) <= 1) {
-      return(NULL)
-    }
-
-    independ_vars <- paste(ind_vars, collapse = " + ")
-
-    if (binary) {
-      # is dependent variable binary?
-      output <- tryCatch(
-        {
-          glm(as.formula(paste(depend_var, "~", independ_vars)),
-            family = "binomial", data = df
-          ) %>%
-            summary()
-        },
-        error = function(cond) {
-          message(paste("Error when regressing", depend_var))
-          message("Original error message:")
-          message(cond)
-          message("Skipping for now...")
-          return(NULL) # return NA in case of error
-        }
-      )
-      if (!is.null(output)) {
-        output$deviance.resid <- NULL
-        output$na.action <- NULL
-        output$terms <- NULL
-      }
-    } else {
-      output <- tryCatch(
-        {
-          lm(as.formula(paste(depend_var, "~", independ_vars)), data = df) %>%
-            summary()
-        },
-        error = function(cond) {
-          message(paste("Error when regressing", depend_var))
-          message("Original error message:")
-          message(cond)
-          message("Skipping for now...")
-          return(NULL) # return NA in case of error
-        }
-      )
-      if (!is.null(output)) {
-        output$residuals <- NULL
-        output$na.action <- NULL
-        output$terms <- NULL
-      }
-    }
-
-    output
-  }
-
+# get independent variables
 get_ind_vars <- function(df, include_race) {
   unique_cols <- apply(df, 2, function(x) length(unique(x)))
 
@@ -71,271 +17,306 @@ get_ind_vars <- function(df, include_race) {
   ind_vars
 }
 
-run_regressions <- function(df, include_race = TRUE) {
+# 8.15.2022: Updated function from Xuan
+# tcut = the censor time
+run_coxregressions <- function(df, include_race = TRUE, tcut=60, blur_abs, mask_thres) {
+
   ind_vars <- get_ind_vars(df, include_race)
 
-  n_readmit_reg_elix <-
-    run_regression(df, "n_readmissions", ind_vars, FALSE)
+  deceased_reg_elix <-
+    run_coxregression(df, 'deceased', ind_vars, tcut=tcut)
 
-  n_readmit_reg_elix$fstatistic$dendf <- NULL
-  n_readmit_reg_elix$df <- NULL
+  time_first_discharge_reg_elix <-
+    run_coxregression(df, "time_to_first_discharge", ind_vars, tcut=tcut)
 
-  list(n_readmit_reg_elix = n_readmit_reg_elix)
+  severe_reg_elix <-
+    run_coxregression(df, 'severe', ind_vars, tcut=tcut)
+
+  list(
+    severe_reg_elix = severe_reg_elix,
+    deceased_reg_elix = deceased_reg_elix,
+    time_first_discharge_reg_elix= time_first_discharge_reg_elix
+  )
 }
 
-run_coxregression <- function(df, depend_var, ind_vars, blur_abs, mask_thres) {
-  if (length(unique(df[, depend_var, drop = T])) <= 1) {
+
+run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_thres) {
+  if (length(unique(df[, depend_var, drop = T])) <= 1)
     return(NULL)
+  independ_vars <- paste(ind_vars, collapse = ' + ')
+
+  if (depend_var=="deceased"){
+    # censor time is the shortest time between days_since_admission or tcut
+    df$c=pmin(df$days_since_admission,tcut)
+    # if missing, temporarily set 1000 days
+    df$time_to_death[is.na(df$time_to_death)]=1000
+    # time is the shortest time between time_to_death or censor tme
+    df$time=apply(cbind(df$time_to_death,df$c),1,min)
+    # delta==1 if time_to_death occurs before censor time
+    df$delta=as.numeric(df$time_to_death<=df$c)
+    # remove those who meet outcome on day of admission
+    df <- df %>% filter(!(time == 0 & delta == 1))
+
+  }else if (depend_var=='time_to_first_discharge'){
+    # censor time is the shortest time between days_since_admission or tcut
+    df$c=pmin(df$days_since_admission,tcut)
+    # if missing, temporarily set 1000 days
+    df$time_to_first_discharge[is.na(df$time_to_first_discharge)]=1000
+    # if missing, temporarily set 1000 days
+    df$time_to_death[is.na(df$time_to_death)]=1000
+    # time is the shortest time_to_first_discharge, time_to_death, censor time
+    df$time=apply(cbind(df$time_to_first_discharge,df$time_to_death,df$c),1,min)
+    # which.min will identify the column integer with the minimum time (e.g. if time_to_first_discharge is the smallest, delta = 1)
+    df$delta=apply(cbind(df$time_to_first_discharge,df$time_to_death,df$c),1,which.min)
+    # remove those who meet outcome on day of admission
+    df <- df %>% filter(!(time == 0 & delta == 1))
+
+  } else if (depend_var=='severe'){
+    # if missing, temporarily set 1000 days
+    df$time_to_severe[is.na(df$time_to_severe)]=1000
+    df$time_to_neuro[is.na(df$time_to_neuro)]=1000
+    # remove those who meet outcome on day of admission
+    df <- df %>% filter(!time_to_severe == 0)
   }
 
-  independ_vars <- paste(ind_vars, collapse = " + ")
+  if (depend_var!='severe'){
+    tryCatch(
+      {
 
-  df <- df %>%
-    mutate(across(starts_with("time_to"), as.numeric),
-           days_since_admission = as.numeric(days_since_admission))
+        covariate=model.matrix(as.formula(paste("Surv(time,delta==1)", '~',
+                                                independ_vars)),data=df)[,-1] #[-1] removes intercept
+        data=data.frame( cbind('time'=df$time,'delta'=df$delta,covariate) )
+        fit=coxph(as.formula(paste("Surv(time,delta==1)", '~',
+                                   paste(colnames(data[,-(1:2)]),collapse='+'))),data=data)
+        newdata=NULL
+        newdata[[1]]= data.frame(cbind(VTM(c(0,0),nrow(covariate)),covariate[,-(1:2)]) )
+        newdata[[2]]= data.frame(cbind(VTM(c(1,0),nrow(covariate)),covariate[,-(1:2)]) )
+        newdata[[3]]= data.frame(cbind(VTM(c(0,1),nrow(covariate)),covariate[,-(1:2)]) )
+        survout=NULL;surv=NULL
+        for (i in 1:length(newdata)){
+          colnames(newdata[[i]])=colnames(covariate)
+          survout[[i]]=survfit(fit,newdata=newdata[[i]] )
+          # surv[[i]]=apply(survout[[i]]$surv, 1, mean)
+          # t=survout[[i]]$time
+          # plot(t,surv[[i]],col=i,type='l',ylim=c(0,1))
+          # par(new=T)
+        }
+        # legend('bottomleft',c('None','Peripheral','Central'),lwd=rep(1,length(newdata)),
+        #        col = 1:length(newdata))
+        names(survout)=c('none','pns','cns')
 
-  message('Print df colnames')
-  print(colnames(df))
-  # message('Print number or df rows')
-  # print(nrow(df))
-  message('Is patient_num a character?')
-  print(is.character(df$patient_num))
-  # message('count rows')
-  # print(nrow(df))
-  # message('print unique patients')
-  # print(nrow(unique(data.frame(df$patient_num))))
+        event_table_obfs <- tryCatch({
 
-  if (depend_var == "deceased") {
-    surv_df <- df %>%
-      mutate(time = if_else(deceased == 1, time_to_death, time_to_last_discharge),
-             time = if_else((is.na(time_to_last_discharge) & deceased == 0), days_since_admission, time),
-             delta = deceased) %>%
-      select(patient_num, delta, time, all_of(ind_vars)) %>%
-      filter(!(time == 0 & delta == 1))
-  } else if (depend_var == "severe") {
-    surv_df <- df %>%
-      mutate(
-        time = if_else(severe == 1 | deceased == 1, pmin(time_to_severe, time_to_death, na.rm = TRUE), time_to_last_discharge),
-        time = if_else(is.na(time), days_since_admission, time),
-        delta = if_else(severe == 1 | deceased == 1, 1, 0)) %>%
-      select(patient_num, delta, time, all_of(ind_vars)) %>%
-      filter(!(time == 0 & delta == 1))
-  } else if (depend_var == "time_to_last_discharge") {
-    surv_df <- df %>%
-      mutate(
-        time = case_when(
-          time_to_death <= time_to_last_discharge ~ time_to_death,
-          is.na(time_to_last_discharge) & is.na(time_to_death) ~ days_since_admission,
-          TRUE ~ time_to_last_discharge),
-        delta = case_when(
-          is.na(time_to_last_discharge) & is.na(time_to_death) ~ 3, #patients still in hospital
-          time_to_death <= time_to_last_discharge ~ 2, #censored patients (died)
-          TRUE ~ 1 #patients who are discharged
-        )
-      ) %>%
-      select(patient_num, delta, time, all_of(ind_vars)) %>%
-      filter(!(time == 0 & delta == 1))
-  } else if (depend_var == "time_to_first_discharge") {
-    surv_df <- df %>%
-      mutate(
-        time = case_when(
-          time_to_death <= time_to_first_discharge ~ time_to_death,
-          is.na(time_to_first_discharge) & is.na(time_to_death) ~ days_since_admission,
-          TRUE ~ time_to_first_discharge),
-        delta = case_when(
-          is.na(time_to_first_discharge) & is.na(time_to_death) ~ 3, #patients still in hospital
-          time_to_death <= time_to_first_discharge ~ 2, #censored patients (died)
-          TRUE ~ 1 #patients who are discharged
-        )
-      ) %>%
-      select(patient_num, delta, time, all_of(ind_vars)) %>%
-      filter(!(time == 0 & delta == 1))
+          message("generating event_tables for adjusted survival curves")
+          none_surv_table <- data.frame(status = "neuro_postNone",
+                                   time = survout$none$time,
+                                   n.censor = survout$none$n.censor,
+                                   n.risk = survout$none$n.risk,
+                                   n.event = survout$none$n.event)
 
+          cns_surv_table <- data.frame(status = "neuro_postCentral",
+                                  time = survout$cns$time,
+                                  n.censor = survout$cns$n.censor,
+                                  n.risk = survout$cns$n.risk,
+                                  n.event = survout$cns$n.event)
+
+          pns_surv_table <- data.frame(status = "neuro_postPeripheral",
+                                  time = survout$pns$time,
+                                  n.censor = survout$pns$n.censor,
+                                  n.risk = survout$pns$n.risk,
+                                  n.event = survout$pns$n.event)
+
+          # combine tables
+          event_table_surv_adjust <- rbind(none_surv_table, cns_surv_table, pns_surv_table)
+
+          # mask and blur for obfuscation
+          message("blurring event_tables for adjusted survival curves")
+          event_surv_table_obfs <- blur_it(event_table_surv_adjust, vars = c("n.risk", "n.event", "n.censor"), blur_abs, mask_thres)
+
+          # save survival model results to a list
+          output=list('fit'=fit,'survout'=event_surv_table_obfs)
+
+          # remove patient level data
+          if (!is.null(output)) {
+            output$fit$linear.predictors <- NULL
+            output$fit$residuals <- NULL
+            output$fit$n <- NULL
+            output$fit$y <- NULL
+            output$fit$nevent <- NULL
+            output$fit$terms <- NULL
+
+            output$survout$none$n <- NULL
+            output$survout$none$surv <- NULL
+            output$survout$none$cumhaz <- NULL
+            output$survout$none$std.err <- NULL
+            output$survout$none$lower <- NULL
+            output$survout$none$upper <- NULL
+
+            output$survout$cns$n <- NULL
+            output$survout$cns$surv <- NULL
+            output$survout$cns$cumhaz <- NULL
+            output$survout$cns$std.err <- NULL
+            output$survout$cns$lower <- NULL
+            output$survout$cns$upper <- NULL
+
+            output$survout$pns$n <- NULL
+            output$survout$pns$surv <- NULL
+            output$survout$pns$cumhaz <- NULL
+            output$survout$pns$std.err <- NULL
+            output$survout$pns$lower <- NULL
+            output$survout$pns$upper <- NULL
+
+          }
+      },
+      error = function(cond) {
+        message(paste("Error when regressing", depend_var))
+        message("Original error message:")
+        message(cond)
+        message('Skipping for now...')
+        return(NULL) }
+    )
+
+  })
   }
 
-  message('Print surv_df colnames')
-  print(colnames(surv_df))
-  #message('Print number or df rows')
-  #print(nrow(surv_df))
-  #message('count rows')
-  #print(nrow(surv_df))
-  #message('print unique patients')
-  #print(nrow(unique(data.frame(surv_df$patient_num))))
+  ## severe
+  if (depend_var=='severe'){
+    tryCatch({
+      # if time to severe is <= tcut, delta = 1
+      df$delta=(df$time_to_severe<=tcut)
+      # if time_to_neuro <= tcut and neuro_post = "Peripheral", delta = 1
+      df$delta.pns=(df$time_to_neuro<=tcut)*(df$neuro_post=="Peripheral")
+      # if time_to_neuro <= tcut and neuro_post = "Central", delta = 1
+      df$delta.cns=(df$time_to_neuro<=tcut)*(df$neuro_post=="Central")
+      # df$delta.none=(df$time_to_neuro<=tcut)*(df$neuro_post=="None") #this is 0 because these patients don't have a time_to_neuro
 
-  output <- tryCatch(
-    {
-      list(
-        cox = "survival::Surv(time, delta==1)" %>%
-          paste("~", independ_vars) %>%
-          as.formula() %>%
-          survival::coxph(data = surv_df) %>% #blocking out inclusion of #id = patient_num) to see if it fixes BCH problem
-          summary(),
-        life = "survival::Surv(time, delta==1) ~ neuro_post" %>%
-          as.formula() %>%
-          survival::survfit(data = surv_df) %>%
-          summary()
-      )
-    },
-    error = function(cond) {
-      message(paste("Error when regressing", depend_var))
-      message("Original error message:")
-      message(cond)
-      message("Skipping for now...")
-      return(NULL) # return NA in case of error
-    }
-  )
+      # remove the neuro_post var
+      ind_vars.new=ind_vars[-1]
+      independ_vars.new <- paste(ind_vars.new, collapse = ' + ')
+      print('create covariate model')
+      covariate <- model.matrix(as.formula(paste("delta", '~',
+                                              independ_vars.new)),data=df)[,-1] #[-1] removes intercept
+      print('bind all dataframes')
+      data=data.frame( cbind('delta'=df$delta,'delta.pns'=df$delta.pns,
+                             'delta.pns.both'=df$delta*df$delta.pns,
+                             'delta.cns'=df$delta.cns,
+                             'delta.cns.both'=df$delta*df$delta.cns,covariate) )
 
-  message('Print length(output). This should be two')
-  print(length(output))
-  message('Print names(output). This should be cox and life')
-  print(names(output))
+      # fit/predict
+      print(colnames(covariate))
+      fit=glm(as.formula(paste('delta~',
+                               paste(colnames(covariate),collapse='+'))),
+              family='binomial',data=data)
+      pred=predict(fit,newdata=data,type = 'response')
+      fit=glm(as.formula(paste('delta.pns~',
+                               paste(colnames(covariate),collapse='+'))),
+              family='binomial',data=data)
+      pred.pns=predict(fit,newdata=data,type = 'response')
+      fit=glm(as.formula(paste('delta.pns.both~',
+                               paste(colnames(covariate),collapse='+'))),
+              family='binomial',data=data)
+      pred.pns.both=predict(fit,newdata=data,type = 'response')
+      fit=glm(as.formula(paste('delta.cns~',
+                               paste(colnames(covariate),collapse='+'))),
+              family='binomial',data=data)
+      pred.cns=predict(fit,newdata=data,type = 'response')
+      fit=glm(as.formula(paste('delta.cns.both~',
+                               paste(colnames(covariate),collapse='+'))),
+              family='binomial',data=data)
+      pred.cns.both=predict(fit,newdata=data,type = 'response')
 
-  event_table_obfs <- tryCatch(
+      #pointwise mutal information
+      pmi.pns=mean(pred.pns.both/(pred*pred.pns))
+      print(pmi.pns)
+      pmi.pns.naive=mean(data$delta.pns.both)/(mean(data$delta)*mean(data$delta.pns))
+      print(pmi.pns.naive)
+      pmi.cns=mean(pred.cns.both/(pred*pred.cns))
+      print(pmi.cns)
+      pmi.cns.naive=mean(data$delta.cns.both)/(mean(data$delta)*mean(data$delta.cns))
+      print(pmi.cns.naive)
+      pmi=data.frame(pmi.pns,pmi.pns.naive,pmi.cns,pmi.cns.naive)
+      print(pmi)
 
-       {
+      # bootstrap confidence intervals
+      time.start=Sys.time()
+      print('starting bootstrap')
+      rep=500
+      print('create vv')
+      vv=gen.bootstrap.weights(2022,n=nrow(data),num.perturb=rep)
+      #print(vv)
+      print('create a bootstrapped object')
+      boot=apply(X = vv, MARGIN = 2, FUN = resam, data, covariate)
+      print(boot)
+      print('end time')
+      time.end=Sys.time()
+      time=time.end-time.start
+      print(time)
+      print('calculating standard errors')
+      se=apply(log(boot),1,mad) # mad = mean absolute difference
 
-      if (is.null(dim(output$life$n.censor)) == TRUE)  {
-        print("n.censor table is correct")
-        print(names(output$life))
-      } else {
-        output$life$n.censor = data.frame(x=unlist(as.data.frame(output$life$n.censor)))
-        colnames(output$life$n.censor) <- "n.censor"
-        print(names(output$life))
-      }
-
-
-      message("generating event_tables for cox model")
-      event_table = data.frame(status = output$life$strata, time = output$life$time, n.risk = output$life$n.risk, n.event = output$life$n.event, n.censor = output$life$n.censor)
-
-      # mask and blur for obfuscation
-      message("blurring event_tables for adjusted survival")
-      event_table_obfs <- blur_it(event_table, vars = c("n.risk", "n.event", "n.censor"), blur_abs, mask_thres)
-    },
-    error = function(cond) {
-      message(paste("Error when regressing", depend_var))
-      message("Original error message:")
-      message(cond)
-      message("Skipping for now...")
-      return(NULL) # return NA in case of error
-    }
-  )
-
-  output$event_table_obfs <- event_table_obfs
-
-  if (!is.null(output)) {
-    output$cox$deviance.resid <- NULL
-    output$cox$na.action <- NULL
-    output$cox$terms <- NULL
-    output$cox$residuals <- NULL
-    output$cox$n <- NULL
-    output$cox$nevent <- NULL
-    output$cox$y <- NULL
-    output$cox$linear.predictors <- NULL
-    output$life$n.censor <- NULL
-    output$life$n <- NULL
-    output$life$n.event <- NULL
-    output$life$n.risk <- NULL
-    output$life$table <- NULL
-  }
-
-  if (length(unique(surv_df$neuro_post)) == 3) {
-
-  # average survival functions
-  average_survival <- tryCatch(
-
-    {
-
-      # [,-1] removes the intercept term
-      covariate=model.matrix(as.formula(paste("survival::Surv(time,delta==1)", '~',
-                                              independ_vars)),data=surv_df )[,-1]
-
-      data=data.frame( cbind('time'=surv_df$time,'delta'=surv_df$delta,covariate) )
-
-      # (-1:2) removes time and delta columns
-      cox=survival::coxph(as.formula(paste("survival::Surv(time,delta==1)", '~',
-                                 paste(colnames(data[,-(1:2)]),collapse='+'))),data=data)
-
-      # calculate mean per covariate
-      meancovariate=apply(covariate,2,mean)
-
-      # create a new data frame to create indicators for neuro status
-      # each neuro status will have the same mean for each covariate
-      newdata=data.frame(rbind(c(0,0,meancovariate[-(1:2)]),
-                               c(1,0,meancovariate[-(1:2)]),
-                               c(0,1,meancovariate[-(1:2)])))
-      colnames(newdata)=names(meancovariate)
-      survout=survival::survfit(cox,newdata)
-      survout = survout %>% summary()
-
-      message("generating event_tables for adjusted survival curves")
-      event_table1 = data.frame(time = survout$time, n.risk = survout$n.risk, n.event = survout$n.event, n.censor = survout$n.censor, neuro_status = "neuro_postNone")
-      event_table2 = data.frame(time = survout$time, n.risk = survout$n.risk, n.event = survout$n.event, n.censor = survout$n.censor, neuro_status = "neuro_postPeripheral")
-      event_table3 = data.frame(time = survout$time, n.risk = survout$n.risk, n.event = survout$n.event, n.censor = survout$n.censor, neuro_status = "neuro_postCentral")
-
-      event_table_surv_adjust <- rbind(event_table1, event_table2, event_table3)
-
-      # mask and blur for obfuscation
-      message("blurring event_tables for adjusted survival curves")
-      event_table_obfs <- blur_it(event_table_surv_adjust, vars = c("n.risk", "n.event", "n.censor"), blur_abs, mask_thres)
-
-      cox <- cox %>% summary()
-
-      average_survival = list("cox"=cox,"survf"=survout, "event_table_obfs" = event_table_obfs)
-
+      output <- list('log.pmi'=log(pmi),'se'=se)
+      output$lower_bound = exp(output$log.pmi-1.96*output$se)
+      output$upper_bound = exp(output$log.pmi+1.96*output$se)
     },
     error = function(cond) {
       message(paste("Error when regressing", depend_var))
       message("Original error message:")
       message(cond)
       message('Skipping for now...')
-      return(NULL) # return NA in case of error
-    }
-  )
-  if (!is.null(average_survival)){
-    average_survival$cox$deviance.resid <- NULL
-    average_survival$cox$na.action <- NULL
-    average_survival$cox$terms <- NULL
-    average_survival$cox$residuals <- NULL
-    average_survival$cox$n <- NULL
-    average_survival$cox$nevent <- NULL
-    average_survival$cox$y <- NULL
-    average_survival$cox$linear.predictors <- NULL
-    average_survival$survf$n <- NULL
-    average_survival$survf$n.censor <- NULL
-    average_survival$life$n.censor <- NULL
-    average_survival$survf$n.event <- NULL
-    average_survival$survf$n.risk <- NULL
+      return(NULL) }
+    )
   }
-
-  output$average_survival <- average_survival
-  }
-
-    return(output)
-
+  output
 }
 
 
-run_coxregressions <- function(df, include_race = TRUE, blur_abs, mask_thres) {
-  ind_vars <- get_ind_vars(df, include_race)
+VTM<-function(vc, dm){
+  matrix(vc, ncol=length(vc), nrow=dm, byrow=T)
+}
 
-  time_severe_reg_elix <-
-    run_coxregression(df, "severe", ind_vars, blur_abs, mask_thres)
 
-  time_deceased_reg_elix <-
-    run_coxregression(df, "deceased", ind_vars, blur_abs, mask_thres)
+gen.bootstrap.weights=function(data.num, n, num.perturb=500){
+  set.seed(data.num)
+  sapply(1:num.perturb,function(x) sample(1:n,n,replace=T))
+  #weights = apply(index,2,function(x) tabulate(x,nbins=n))
+  #list(index=index,weights=weights)
+}
 
-  time_last_discharge_reg_elix <-
-    run_coxregression(df, "time_to_last_discharge", ind_vars, blur_abs, mask_thres)
+resam=function(vv,data,covariate){
+  data=data[vv,]
 
-  time_first_discharge_reg_elix <-
-    run_coxregression(df, "time_to_first_discharge", ind_vars, blur_abs, mask_thres)
+  fit1=glm(as.formula(paste('delta~',
+                           paste(colnames(covariate),collapse='+'))),
+          family='binomial',data=data)
+  pred=predict(fit1,newdata=data,type = 'response')
 
-  list(
-    time_severe_reg_elix = time_severe_reg_elix,
-    time_deceased_reg_elix = time_deceased_reg_elix,
-    time_last_discharge_reg_elix = time_last_discharge_reg_elix,
-    time_first_discharge_reg_elix = time_first_discharge_reg_elix
-  )
+  fit2=glm(as.formula(paste('delta.pns~',
+                           paste(colnames(covariate),collapse='+'))),
+          family='binomial',data=data)
+  pred.pns=predict(fit2,newdata=data,type = 'response')
+
+  fit3=glm(as.formula(paste('delta.pns.both~',
+                           paste(colnames(covariate),collapse='+'))),
+          family='binomial',data=data)
+  pred.pns.both=predict(fit3,newdata=data,type = 'response')
+
+  fit4=glm(as.formula(paste('delta.cns~',
+                           paste(colnames(covariate),collapse='+'))),
+          family='binomial',data=data)
+  pred.cns=predict(fit4,newdata=data,type = 'response')
+
+  fit5=glm(as.formula(paste('delta.cns.both~',
+                           paste(colnames(covariate),collapse='+'))),
+          family='binomial',data=data)
+  pred.cns.both=predict(fit5,newdata=data,type = 'response')
+
+  pmi.pns=mean(pred.pns.both/(pred*pred.pns))
+  pmi.pns.naive=mean(data$delta.pns.both)/(mean(data$delta)*mean(data$delta.pns))
+  pmi.cns=mean(pred.cns.both/(pred*pred.cns))
+  pmi.cns.naive=mean(data$delta.cns.both)/(mean(data$delta)*mean(data$delta.cns))
+
+  out=c(pmi.pns,pmi.pns.naive,pmi.cns,pmi.cns.naive)
+
 }
 
 run_hosps <- function(neuro_patients,
@@ -353,132 +334,8 @@ run_hosps <- function(neuro_patients,
                       neuro_icds,
                       index_scores_elix,
                       pca_covariates) {
-  ## -------------------------------------------------------------------------
 
-#
-#   neuro_patients <- obs_raw %>%
-#     filter(days_since_admission >= 0) %>%
-#     right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
-#     filter(!is.na(patient_num)) %>%
-#     distinct(patient_num, concept_code, pns_cns) %>%
-#     group_by(patient_num) %>%
-#     mutate(nerv_sys_count = length(unique(pns_cns))) %>%
-#     ungroup() %>%
-#     mutate(neuro_type = case_when(
-#       nerv_sys_count == 2 ~ "Both",
-#       TRUE ~ as.character(pns_cns)
-#     ))
-#
-#   # count number of Both patients
-#   both_pts <- neuro_patients %>%
-#     filter(neuro_type == "Both") %>%
-#     distinct(patient_num)
-#
-#   both <- both_pts %>%
-#     count() %>%
-#     as.integer() %>%
-#     blur_mask_int_num(., blur_abs, mask_thres)
-#
-#   # remove both from neuro_patients df
-#   neuro_patients <- neuro_patients %>%
-#     filter(!neuro_type == "Both")
-#
-#   neuro_pt_post <- unique(neuro_patients$patient_num)
-#
-#   # calculate mean and median number of codes per patient and neuro_type status
-#   n_codes_per_patient <- neuro_patients %>%
-#     group_by(patient_num, neuro_type) %>%
-#     mutate(count = n()) %>%
-#     ungroup() %>%
-#     distinct(patient_num, neuro_type, count) %>%
-#     select(neuro_type, count) %>%
-#     group_by(neuro_type) %>%
-#     mutate(mean_count = mean(count),
-#            median_count = median(count),
-#            iqr25 = quantile(count, probs = 0.25),
-#            iqr75 = quantile(count, probs = 0.75)) %>%
-#     ungroup() %>%
-#     distinct(neuro_type, mean_count, iqr25, median_count, iqr75)
-#
-#
-#   non_neuro_patients <-
-#     data.frame(patient_num = setdiff(demo_processed$patient_num, neuro_pt_post)) %>%
-#     mutate(concept_code = "NN") %>%
-#     # remove both patients
-#     filter(!patient_num %in% both_pts$patient_num)
-
-
-  ## -------------------------------------------------------------------------
-  # days_count_min_max <- obs_raw %>%
-  #   group_by(patient_num) %>%
-  #   summarise(
-  #     distinct_days = n_distinct(days_since_admission),
-  #     min_hos = min(days_since_admission),
-  #     .groups = 'drop'
-  #   )
-
-
-  ## -------------------------------------------------------------------------
-  # optional
-  nstay_df <- neuro_patients %>%
-    data.frame() %>%
-    select(patient_num, concept_code) %>%
-    rbind(non_neuro_patients) %>%
-    left_join(demo_processed, by = "patient_num") %>%
-    mutate(concept_code = fct_reorder(concept_code, time_to_first_discharge)) %>%
-    left_join(neuro_icds, by = c("concept_code" = "icd"))
-
-  comorb_names_elix <- get_quan_elix_names()
-
-  icd_tables <- get_tables(
-    c("no_neuro_cond", "neuro_cond"),
-    nstay_df,
-    right_join0(index_scores_elix, nstay_df, by = "patient_num"),
-    comorb_names_elix,
-    blur_abs,
-    mask_thres,
-    "concept_code"
-  )[-3] # last element is not useful, remove
-
-  ## -------------------------------------------------------------------------
-  # Part 1: Binary outcome: neuro vs. non_neuro
-  # update July 21, 2022: We will not run the binary analysis
-  # demo_df <- demo_processed %>%
-  #   filter(!patient_num %in% both_pts$patient_num) %>%
-  #   mutate(neuro_post = patient_num %in% neuro_pt_post %>%
-  #     as.factor() %>%
-  #     fct_recode(
-  #       neuro_cond = "TRUE",
-  #       no_neuro_cond = "FALSE"
-  #     ))
-  # 
-  # scores_unique <- index_scores_elix %>%
-  #   right_join0(demo_df, by = "patient_num") %>%
-  #   left_join(pca_covariates, by = "patient_num")
-  # 
-  # obfus_tables <- get_tables(
-  #   c("no_neuro_cond", "neuro_cond"),
-  #   demo_df,
-  #   scores_unique,
-  #   comorb_names_elix,
-  #   blur_abs,
-  #   mask_thres
-  # ) %>%
-  #   lapply(function(x) mutate(x, site = currSiteId))
-  # 
-  # message("Start Binary Analysis")
-  # binary = TRUE
-  # print(binary == TRUE)
-
-  ## -------------------------------------------------------------------------
-  #reg_results <- run_regressions(scores_unique, include_race)
-  #sub_reg_results <- run_coxregressions(scores_unique, include_race, blur_abs, mask_thres)
-
-  ## ----save-results---------------------------------------------------------
-  #binary_results <- c(obfus_tables, sub_reg_results)
-
-  ## -------------------------------------------------------------------------
-  ### Part 2: PNS vs CNS
+  ### CNS vs PNS
   message("Start CNS vs PNS Analysis")
   binary = FALSE
   print(binary == FALSE)
@@ -509,7 +366,7 @@ run_hosps <- function(neuro_patients,
 
   ## -------------------------------------------------------------------------
   # Create individual tables for those who met outcome on admission and are
-  # exclude from main survival analysis
+  # excluded from main survival analysis
 
   surv_exclude_pts <- function(df, time_to_outcome) {
 
@@ -564,7 +421,7 @@ run_hosps <- function(neuro_patients,
   last_adm <- surv_exclude_pts(demo_df, "time_to_last_discharge")
 
   ## -------------------------------------------------------------------------
-  reg_results <- run_regressions(scores_unique, include_race)
+  #reg_results <- run_regressions(scores_unique, include_race)
   sub_reg_results <- run_coxregressions(scores_unique, include_race, blur_abs, mask_thres)
 
   ## ----save-results---------------------------------------------------------

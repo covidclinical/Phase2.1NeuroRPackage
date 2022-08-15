@@ -42,7 +42,7 @@ runAnalysis <- function() {
 
   # count mask threshold
   # absolute max of blurring range
-  # VA_site <- FALSE
+  VA_site <- FALSE
 
   if (VA_site) {
     clin_raw <- clin_raw %>%
@@ -198,7 +198,6 @@ runAnalysis <- function() {
     demo_processed_first$pre_admission_pns <- 0
   }
 
-
   # identify patient's who are still in the hospital
   # this information will help us select the icd codes during first hospitalization
   in_hospital <- demo_processed_first %>%
@@ -345,13 +344,28 @@ runAnalysis <- function() {
     `colnames<-`(paste0(".fittedPC", 1:10)) %>%
     tibble::rownames_to_column("patient_num")
 
-  ## save NWU tables of comorbidities and patient-level data
-  #save(pca_covariates, file = "nwu_analysis/pca_covariates.rda")
-  #save(index_scores_elix, file = "nwu_analysis/index_scores_elix.rda")
-  #save(neuro_patients, file = "nwu_analysis/neuro_patients.rda")
-  #save(demo_processed_first, file = "nwu_analysis/demo_processed_first.rda")
-  #save(both_pts, file = "nwu_analysis/both_pts.rda")
+  ## additional formatting of data for modeling
+  nstay_df <- neuro_patients %>%
+    data.frame() %>%
+    select(patient_num, concept_code) %>%
+    rbind(non_neuro_patients) %>%
+    left_join(demo_processed, by = "patient_num") %>%
+    mutate(concept_code = fct_reorder(concept_code, time_to_first_discharge)) %>%
+    left_join(neuro_icds, by = c("concept_code" = "icd"))
 
+  comorb_names_elix <- get_quan_elix_names()
+
+  icd_tables <- get_tables(
+    c("no_neuro_cond", "neuro_cond"),
+    nstay_df,
+    right_join0(index_scores_elix, nstay_df, by = "patient_num"),
+    comorb_names_elix,
+    blur_abs,
+    mask_thres,
+    "concept_code"
+  )[-3] # last element is not useful, remove
+
+  # perform the run_hosps to compute our primary analysis and save all results to a list object
   results <- list(
     site = CurrSiteId,
     elix_mat = elix_mat,
