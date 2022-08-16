@@ -11,6 +11,9 @@
 #'
 runAnalysis <- function() {
 
+  print('Set timer - this analysis will take sometime to run')
+  time.start.analysis=Sys.time()
+
   set.seed(446) # for obfuscation posterity
 
   select <- dplyr::select
@@ -362,7 +365,6 @@ runAnalysis <- function() {
     elix_mat_cns = elix_mat_cns,
     elix_mat_pns = elix_mat_cns,
     deviance_expl = deviance_expl,
-    #propagated_codes = propagated_codes,
     first_hosp_results = run_hosps(
       neuro_patients,
       neuro_pt_post,
@@ -404,6 +406,12 @@ runAnalysis <- function() {
   # add n_codes_per_patients dataframe
   results$n_codes_per_patient <- n_codes_per_patient
 
+ # timing for testing when we are not submitting results
+ # time.end.analysis=Sys.time()
+ # time.analysis=time.end.analysis-time.start.analysis
+ # print(paste('The analysis completed in', time.analysis))
+
+
   rm(list = setdiff(ls(), c("CurrSiteId", "results")))
 
   site_results <- paste0(CurrSiteId, "_results")
@@ -430,5 +438,9 @@ runAnalysis <- function() {
     ),
     "\nPlease submit the result file by running submitAnalysis()\n"
   )
+
+  time.end.analysis=Sys.time()
+  time.analysis=time.end.analysis-time.start.analysis
+  print(paste('The analysis completed in', time.analysis))
 
 }

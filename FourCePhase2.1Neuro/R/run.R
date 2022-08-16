@@ -19,11 +19,17 @@ get_ind_vars <- function(df, include_race) {
 
 # 8.15.2022: Updated function from Xuan
 # tcut = the censor time
-run_coxregressions <- function(df, include_race = TRUE, tcut=60, blur_abs, mask_thres, is_pediatric = NULL) {
+run_coxregressions <- function(analysis, df, include_race = TRUE, tcut=60, blur_abs, mask_thres, is_pediatric = NULL) {
 
-  if(is_pediatric = FALSE){
+  print(analysis)
+
+  # convert age group to character to remove factor levels
+  df <- df %>%
+    mutate(age_group = as.character(age_group))
+
+  if(is_pediatric == FALSE){
     df <- df %>% filter(age_group %in% c("18to25", "26to49", "50to69", "70to79", "80plus"))
-  } else if(is_pediatric = TRUE){
+  } else if(is_pediatric == TRUE){
     df <- df %>% filter(age_group %in% c("00to02", "06to11", "12to17"))
   }
 
@@ -74,10 +80,16 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
     df$time_to_death[is.na(df$time_to_death)]=1000
     # time is the shortest time_to_first_discharge, time_to_death, censor time
     df$time=apply(cbind(df$time_to_first_discharge,df$time_to_death,df$c),1,min)
-    # which.min will identify the column integer with the minimum time (e.g. if time_to_first_discharge is the smallest, delta = 1)
+    # if time_to_first_discharge = time_to_first_death, make time_to_first_discharge NA
+    df <- df %>% mutate(time_to_first_discharge = ifelse(time_to_first_discharge == time_to_death,
+                                                          time_to_first_discharge == NA,
+                                                          time_to_first_discharge))
+    # which.min will identify the column integer with the minimum time
+    # (e.g. if time_to_first_discharge is the smallest, delta = 1)
     df$delta=apply(cbind(df$time_to_first_discharge,df$time_to_death,df$c),1,which.min)
-    # remove those who meet outcome on day of admission
+    # remove those who meet outcome (discharge or death) on day of admission
     df <- df %>% filter(!(time == 0 & delta == 1))
+    df <- df %>% filter(!(time == 0 & delta == 2))
 
   } else if (depend_var=='severe'){
     # if missing, temporarily set 1000 days
@@ -393,11 +405,6 @@ run_hosps <- function(neuro_patients,
         mutate(death_before_outcome = case_when(time_to_death <= 0 ~ 1,
                                                 TRUE ~ 0)) %>%
         filter(time_to_first_discharge == 0 & death_before_outcome == 0)
-    } else if (time_to_outcome == "time_to_last_discharge") {
-      demo_subset_df <- df %>%
-        mutate(death_before_outcome = case_when(time_to_death <= 0 ~ 1,
-                                                TRUE ~ 0)) %>%
-        filter(time_to_last_discharge == 0 & death_before_outcome == 0)
     }
 
     scores_unique <- index_scores_elix %>%
@@ -430,7 +437,6 @@ run_hosps <- function(neuro_patients,
   severe_adm <- surv_exclude_pts(demo_df, "time_to_severe")
   death_adm <- surv_exclude_pts(demo_df, "time_to_death")
   first_adm <- surv_exclude_pts(demo_df, "time_to_first_discharge")
-  last_adm <- surv_exclude_pts(demo_df, "time_to_last_discharge")
 
 
   ## ---run-survival-models--------------------------------------------------------------------
@@ -439,9 +445,9 @@ run_hosps <- function(neuro_patients,
   # only run the adult analysis if the site is not a pediatric only hospital
   if(currSiteId != c("BCH", "GOSH")) {
     tryCatch({
-      surv_results30 <- run_coxregressions(df = scores_unique, include_race, tcut = 30, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = FALSE)
-      surv_results60 <- run_coxregressions(df = scores_unique, include_race, tcut = 60, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = FALSE)
-      surv_results90 <- run_coxregressions(df = scores_unique, include_race, tcut = 90, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = FALSE)
+      surv_results30 <- run_coxregressions(analysis = "Adults_30_days", df = scores_unique, include_race, tcut = 30, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = FALSE)
+      surv_results60 <- run_coxregressions(analysis = "Adults_60_days", df = scores_unique, include_race, tcut = 60, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = FALSE)
+      surv_results90 <- run_coxregressions(analysis = "Adults_90_days", df = scores_unique, include_race, tcut = 90, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = FALSE)
     },
     error = function(cond) {
       message("Original error message:")
@@ -452,12 +458,27 @@ run_hosps <- function(neuro_patients,
     )
   }
   # Pediatric
-  surv_results_peds30 <- run_coxregressions(df = scores_unique, include_race, tcut = 30, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE)
-  surv_results_peds60 <- run_coxregressions(df = scores_unique, include_race, tcut = 60, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE)
-  surv_results_peds90 <- run_coxregressions(df = scores_unique, include_race, tcut = 90, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE)
+  tryCatch({
+  surv_results_peds30 <- run_coxregressions(analysis = "Pediatrics_30_days", df = scores_unique, include_race, tcut = 30, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE)
+  surv_results_peds60 <- run_coxregressions(analysis = "Pediatrics_60_days", df = scores_unique, include_race, tcut = 60, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE)
+  surv_results_peds90 <- run_coxregressions(analysis = "Pediatrics_90_days", df = scores_unique, include_race, tcut = 90, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE)
+  },
+  error = function(cond) {
+    message("Original error message:")
+    message(cond)
+    message("No data to subset. Skipping for now...")
+    return(NULL) # return NA in case of error
+  }
+  )
 
   ## ----save-results---------------------------------------------------------
-  cpns_results <- c(obfus_tables, surv_results30, surv_results60, surv_results90, surv_results_peds30, surv_results_peds60, surv_results_peds90)
+  cpns_results <- c(obfus_tables,
+                    'surv_results30'  = surv_results30,
+                    'surv_results60' = surv_results60,
+                    'surv_results90' = surv_results90,
+                    'surv_results_peds30' = surv_results_peds30,
+                    'surv_results_peds60' = surv_results_peds60,
+                    'surv_results_peds90' = surv_results_peds90)
 
   results <- list(
     icd_tables = icd_tables,
