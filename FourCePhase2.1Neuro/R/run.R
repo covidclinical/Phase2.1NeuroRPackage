@@ -19,18 +19,24 @@ get_ind_vars <- function(df, include_race) {
 
 # 8.15.2022: Updated function from Xuan
 # tcut = the censor time
-run_coxregressions <- function(df, include_race = TRUE, tcut=60, blur_abs, mask_thres) {
+run_coxregressions <- function(df, include_race = TRUE, tcut=60, blur_abs, mask_thres, is_pediatric = NULL) {
+
+  if(is_pediatric = FALSE){
+    df <- df %>% filter(age_group %in% c("18to25", "26to49", "50to69", "70to79", "80plus"))
+  } else if(is_pediatric = TRUE){
+    df <- df %>% filter(age_group %in% c("00to02", "06to11", "12to17"))
+  }
 
   ind_vars <- get_ind_vars(df, include_race)
 
   deceased_reg_elix <-
-    run_coxregression(df, 'deceased', ind_vars, tcut=tcut)
+    run_coxregression(df, 'deceased', ind_vars, tcut=tcut, blur_abs, mask_thres)
 
   time_first_discharge_reg_elix <-
-    run_coxregression(df, "time_to_first_discharge", ind_vars, tcut=tcut)
+    run_coxregression(df, "time_to_first_discharge", ind_vars, tcut=tcut, blur_abs, mask_thres)
 
   severe_reg_elix <-
-    run_coxregression(df, 'severe', ind_vars, tcut=tcut)
+    run_coxregression(df, 'severe', ind_vars, tcut=tcut, blur_abs, mask_thres)
 
   list(
     severe_reg_elix = severe_reg_elix,
@@ -44,6 +50,8 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
   if (length(unique(df[, depend_var, drop = T])) <= 1)
     return(NULL)
   independ_vars <- paste(ind_vars, collapse = ' + ')
+
+  print(paste('Begin evaluating', depend_var,  'outcome'))
 
   if (depend_var=="deceased"){
     # censor time is the shortest time between days_since_admission or tcut
@@ -80,6 +88,8 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
   }
 
   if (depend_var!='severe'){
+
+    # mean adjusted survival time
     tryCatch(
       {
 
@@ -96,7 +106,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
         for (i in 1:length(newdata)){
           colnames(newdata[[i]])=colnames(covariate)
           survout[[i]]=survfit(fit,newdata=newdata[[i]] )
-          # surv[[i]]=apply(survout[[i]]$surv, 1, mean)
+          surv[[i]]=apply(survout[[i]]$surv, 1, mean)
           # t=survout[[i]]$time
           # plot(t,surv[[i]],col=i,type='l',ylim=c(0,1))
           # par(new=T)
@@ -134,7 +144,9 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
           event_surv_table_obfs <- blur_it(event_table_surv_adjust, vars = c("n.risk", "n.event", "n.censor"), blur_abs, mask_thres)
 
           # save survival model results to a list
-          output=list('fit'=fit,'survout'=event_surv_table_obfs)
+          output=list('fit'=fit,
+                      'surv_avg'=surv,
+                      'survtable'=event_surv_table_obfs)
 
           # remove patient level data
           if (!is.null(output)) {
@@ -176,8 +188,8 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
         return(NULL) }
     )
 
-  })
-  }
+      })
+    }
 
   ## severe
   if (depend_var=='severe'){
@@ -196,14 +208,13 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
       print('create covariate model')
       covariate <- model.matrix(as.formula(paste("delta", '~',
                                               independ_vars.new)),data=df)[,-1] #[-1] removes intercept
-      print('bind all dataframes')
       data=data.frame( cbind('delta'=df$delta,'delta.pns'=df$delta.pns,
                              'delta.pns.both'=df$delta*df$delta.pns,
                              'delta.cns'=df$delta.cns,
                              'delta.cns.both'=df$delta*df$delta.cns,covariate) )
 
       # fit/predict
-      print(colnames(covariate))
+      print('fit models')
       fit=glm(as.formula(paste('delta~',
                                paste(colnames(covariate),collapse='+'))),
               family='binomial',data=data)
@@ -226,6 +237,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
       pred.cns.both=predict(fit,newdata=data,type = 'response')
 
       #pointwise mutal information
+      print('calculate pmi')
       pmi.pns=mean(pred.pns.both/(pred*pred.pns))
       print(pmi.pns)
       pmi.pns.naive=mean(data$delta.pns.both)/(mean(data$delta)*mean(data$delta.pns))
@@ -246,7 +258,6 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
       #print(vv)
       print('create a bootstrapped object')
       boot=apply(X = vv, MARGIN = 2, FUN = resam, data, covariate)
-      print(boot)
       print('end time')
       time.end=Sys.time()
       time=time.end-time.start
@@ -255,6 +266,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
       se=apply(log(boot),1,mad) # mad = mean absolute difference
 
       output <- list('log.pmi'=log(pmi),'se'=se)
+      print('calculating confidence intervals')
       output$lower_bound = exp(output$log.pmi-1.96*output$se)
       output$upper_bound = exp(output$log.pmi+1.96*output$se)
     },
@@ -420,16 +432,35 @@ run_hosps <- function(neuro_patients,
   first_adm <- surv_exclude_pts(demo_df, "time_to_first_discharge")
   last_adm <- surv_exclude_pts(demo_df, "time_to_last_discharge")
 
-  ## -------------------------------------------------------------------------
-  #reg_results <- run_regressions(scores_unique, include_race)
-  sub_reg_results <- run_coxregressions(scores_unique, include_race, blur_abs, mask_thres)
+
+  ## ---run-survival-models--------------------------------------------------------------------
+
+  # Adults
+  # only run the adult analysis if the site is not a pediatric only hospital
+  if(currSiteId != c("BCH", "GOSH")) {
+    tryCatch({
+      surv_results30 <- run_coxregressions(df = scores_unique, include_race, tcut = 30, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = FALSE)
+      surv_results60 <- run_coxregressions(df = scores_unique, include_race, tcut = 60, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = FALSE)
+      surv_results90 <- run_coxregressions(df = scores_unique, include_race, tcut = 90, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = FALSE)
+    },
+    error = function(cond) {
+      message("Original error message:")
+      message(cond)
+      message("No data to subset. Skipping for now...")
+      return(NULL) # return NA in case of error
+    }
+    )
+  }
+  # Pediatric
+  surv_results_peds30 <- run_coxregressions(df = scores_unique, include_race, tcut = 30, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE)
+  surv_results_peds60 <- run_coxregressions(df = scores_unique, include_race, tcut = 60, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE)
+  surv_results_peds90 <- run_coxregressions(df = scores_unique, include_race, tcut = 90, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE)
 
   ## ----save-results---------------------------------------------------------
-  cpns_results <- c(obfus_tables, sub_reg_results)
+  cpns_results <- c(obfus_tables, surv_results30, surv_results60, surv_results90, surv_results_peds30, surv_results_peds60, surv_results_peds90)
 
   results <- list(
     icd_tables = icd_tables,
-    #binary_results = binary_results,
     cpns_results = cpns_results,
     severe_adm = severe_adm,
     death_adm = death_adm,
@@ -487,76 +518,8 @@ temporal_neuro <- function(comp_readmissions, obs_raw, neuro_icds, readmissions,
     filter(days_since_admission <= dsa) %>%
     select(-dsa)
 
-  #8.31.2021 - will remove the functions for propagated codes for now. I don't think this is excluding our "Both" patients
-  # first_neuro_conds <- obs_first_hosp %>%
-  #   filter(days_since_admission >= 0) %>%
-  #   right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
-  #   distinct(patient_num, early_code = concept_code) %>%
-  #   group_by(patient_num) %>%
-  #   summarise_all(list(~ list(.)))
-  #
-  # obs_later_hosp <- comp_readmissions %>%
-  #   filter(first_out) %>%
-  #   # days since admission the patient is out of hospital
-  #   transmute(patient_num,
-  #     dsa = days_since_admission
-  #   ) %>%
-  #   right_join(obs_raw, by = "patient_num") %>%
-  #   filter(days_since_admission >= dsa) %>%
-  #   right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
-  #   distinct(patient_num, later_code = concept_code) %>%
-  #   group_by(patient_num) %>%
-  #   summarise_all(list(~ list(.))) %>%
-  #   ungroup() %>%
-  #   right_join(first_neuro_conds, by = "patient_num") %>%
-  #   mutate(
-  #     n_new_code = purrr::map2(later_code, early_code, ~ length(setdiff(.x, .y))),
-  #     repeated_code = purrr::map2(later_code, early_code, intersect),
-  #     readmitted = patient_num %in% readmissions$patient_num,
-  #     prop_new_code = purrr::map2(n_new_code, later_code, ~ .x / length(.y))
-  #   ) %>%
-  #   select(-patient_num)
-  #
-  # new_codes <- obs_later_hosp %>%
-  #   filter(readmitted) %>%
-  #   tidyr::unnest(c(early_code, n_new_code, prop_new_code)) %>%
-  #   mutate_at(
-  #     vars(prop_new_code),
-  #     ~ replace(., is.nan(.), 0)
-  #   ) %>%
-  #   group_by(early_code) %>%
-  #   summarise(
-  #     n_early_codes = n(),
-  #     n_new_codes = sum(n_new_code),
-  #     n_no_new_codes = sum(n_new_code == 0),
-  #     at_least_one_new_code = sum(n_new_code > 0),
-  #     prop_new_codes = sum(prop_new_code)
-  #   )
-
-  # propagated_codes <- NULL
-  #
-  # if (sum(obs_later_hosp$readmitted) > 0) {
-  #   propagated_codes <- obs_later_hosp %>%
-  #     filter(readmitted) %>%
-  #     tidyr::unnest(repeated_code) %>%
-  #     pull(repeated_code) %>%
-  #     table() %>%
-  #     data.frame() %>%
-  #     `colnames<-`(c("early_code", "repeated")) %>%
-  #     right_join0(new_codes, by = "early_code") %>%
-  #     transmute(
-  #       early_code,
-  #       n_early_codes,
-  #       n_new_codes,
-  #       prop_new_codes,
-  #       prob_repeated = repeated / n_early_codes,
-  #       prob_at_least_one_new = at_least_one_new_code / n_early_codes
-  #     )
-  # }
-
 
   list(
-    obs_first_hosp = obs_first_hosp#,
-    #propagated_codes = propagated_codes
+    obs_first_hosp = obs_first_hosp
   )
 }

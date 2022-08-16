@@ -209,16 +209,6 @@ runAnalysis <- function() {
 
   obs_first_hosp <- temp_neuro$obs_first_hosp
 
-  # 8.31.2021 - will remove this function for now. I don't think this is excluding our "Both" patients
-  # propagated_codes <- temp_neuro$propagated_codes %>%
-  #   blur_it(c("n_early_codes", "n_new_codes"), blur_abs, mask_thres) %>%
-  #   mutate(
-  #     prop_new_codes = if_else(n_early_codes == 0, 0, prop_new_codes),
-  #     prob_repeated = if_else(n_early_codes == 0, 0, prob_repeated),
-  #     prob_at_least_one_new =
-  #       if_else(n_early_codes == 0, 0, prob_at_least_one_new)
-  #   )
-
   # need to identify patients with "Both" neuro cns and pns codes during neuro admission
   neuro_patients <- obs_first_hosp %>%
     filter(days_since_admission >= 0) %>%
@@ -349,7 +339,7 @@ runAnalysis <- function() {
     data.frame() %>%
     select(patient_num, concept_code) %>%
     rbind(non_neuro_patients) %>%
-    left_join(demo_processed, by = "patient_num") %>%
+    left_join(demo_processed_first, by = "patient_num") %>%
     mutate(concept_code = fct_reorder(concept_code, time_to_first_discharge)) %>%
     left_join(neuro_icds, by = c("concept_code" = "icd"))
 
