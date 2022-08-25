@@ -11,7 +11,7 @@
 #'
 runAnalysis <- function() {
 
-  print('Set timer - this analysis will take sometime to run')
+  print('Set timer - this analysis will take some time to run')
   time.start.analysis=Sys.time()
 
   set.seed(446) # for obfuscation posterity
@@ -102,7 +102,7 @@ runAnalysis <- function() {
     )
 
   obs_raw <- obs_raw %>%
-    filter(concept_type %in% c("DIAG-ICD10", "DIAG-ICD9")) %>%
+    filter(concept_type %in% c(paste0("DIAG-ICD",icd_version))) %>%
     mutate(concept_code = stringr::str_sub(concept_code, 1, 3))
 
   if (icd_version == 9) {
@@ -111,8 +111,18 @@ runAnalysis <- function() {
     neuro_icds <- neuro_icds_10
   }
 
+  ## estimate last admission date
+  site_last_admission_date <- demo_raw %>%
+    arrange(admission_date) %>%
+    tail(., 1) %>%
+    select(admission_date)
+
+  site_last_admission_date <- format(site_last_admission_date$admission_date,"%m-%Y")
+
   #####
-  # start analysis
+  ## start analysis
+
+  # compute admission timelines
   comp_readmissions <- clin_raw %>%
     group_by(patient_num) %>%
     arrange(days_since_admission, .by_group = TRUE) %>%
@@ -129,6 +139,7 @@ runAnalysis <- function() {
     ) %>%
     ungroup()
 
+  # compute number of readmissions
   n_readms <- comp_readmissions %>%
     filter(
       delta_hospitalized != 0,
@@ -139,6 +150,7 @@ runAnalysis <- function() {
     select(patient_num, n_readmissions) %>%
     distinct()
 
+  # compute time_to_first_readmission
   readmissions <- comp_readmissions %>%
     filter(patient_num %in% n_readms$patient_num, first_change) %>%
     select(patient_num, delta_hospitalized, days_since_admission) %>%
@@ -150,21 +162,26 @@ runAnalysis <- function() {
     select(patient_num, time_to_first_readmission) %>%
     left_join(n_readms, by = "patient_num")
 
+  # determine time_to_first_discharge
   nstay_df <- comp_readmissions %>%
     filter(first_out) %>%
     transmute(patient_num, time_to_first_discharge = days_since_admission - 1)
 
-  # patients with neuro conditions prior to admission
+  # identify patients with neuro conditions prior to admission
   pre_neuro <- obs_raw %>%
     filter(days_since_admission >= -365 & days_since_admission <= -15) %>%
     right_join(neuro_icds, by = c("concept_code" = "icd")) %>%
     filter(!is.na(patient_num)) %>%
     count(patient_num, pns_cns) %>%
     mutate(value = log(n + 1)) %>%
-    pivot_wider(id_cols = patient_num, names_from = pns_cns, values_from = value, values_fill = 0) %>%
+    pivot_wider(id_cols = patient_num,
+                names_from = pns_cns,
+                values_from = value,
+                values_fill = 0) %>%
     rename(pre_admission_cns = Central,
            pre_admission_pns = Peripheral)
 
+  # prepare demographics df and determine time to events for our outcomes
   demo_processed_first <- demo_raw %>%
     mutate(
       time_to_severe = subtract_days(admission_date, severe_date),
@@ -207,8 +224,7 @@ runAnalysis <- function() {
     filter(is.na(time_to_first_discharge)) %>%
     distinct(patient_num, still_in_hospital)
 
-  temp_neuro <-
-    temporal_neuro(comp_readmissions, obs_raw, neuro_icds, readmissions, in_hospital)
+  temp_neuro <- temporal_neuro(comp_readmissions, obs_raw, neuro_icds, readmissions, in_hospital)
 
   obs_first_hosp <- temp_neuro$obs_first_hosp
 
@@ -241,7 +257,29 @@ runAnalysis <- function() {
     as.integer() %>%
     blur_mask_int_num(., blur_abs, mask_thres)
 
-  # remove both from neuro_patients df
+  # count both patients by adults & pediatrics
+  both_adult_pts <- demo_processed_first %>%
+    filter(patient_num %in% both_pts$patient_num,
+           age_group %in% c("18to25", "26to49", "50to69", "70to79", "80plus")) %>%
+    distinct(patient_num) %>%
+    count() %>%
+    as.integer() %>%
+    blur_mask_int_num(., blur_abs, mask_thres)
+
+  both_ped_pts <- demo_processed_first %>%
+    filter(patient_num %in% both_pts$patient_num,
+           age_group %in% c("00to02", "06to11", "12to17")) %>%
+    distinct(patient_num) %>%
+    count() %>%
+    as.integer() %>%
+    blur_mask_int_num(., blur_abs, mask_thres)
+
+  # save all 'both' counts
+  both_counts <- list(both = both,
+                      both_adult_pts = both_adult_pts,
+                      both_ped_pts = both_ped_pts)
+
+  # remove all of the 'both' patients from neuro_patients df
   neuro_patients <- neuro_patients %>%
     filter(!neuro_type == "Both") %>%
     # consolidate the 'time_to_cns' and 'time_to_pns' as 'time_to_neuro'
@@ -250,20 +288,28 @@ runAnalysis <- function() {
 
   neuro_pt_post <- unique(neuro_patients$patient_num)
 
+  # indicate adult vs pediatric patients
+  demo_processed_first <- demo_processed_first %>%
+    mutate(adult_ped = ifelse(age_group %in% c("18to25", "26to49", "50to69", "70to79", "80plus"), "adult", "pediatric"))
+
+
   # calculate mean and median number of codes per patient and neuro_type status
   n_codes_per_patient <- neuro_patients %>%
+    left_join(., demo_processed_first %>%
+                select(patient_num, adult_ped),
+              by = "patient_num") %>%
     group_by(patient_num, neuro_type) %>%
     mutate(count = n()) %>%
     ungroup() %>%
-    distinct(patient_num, neuro_type, count) %>%
-    select(neuro_type, count) %>%
-    group_by(neuro_type) %>%
+    distinct(patient_num, neuro_type, adult_ped, count) %>%
+    select(neuro_type, adult_ped, count) %>%
+    group_by(neuro_type, adult_ped) %>%
     mutate(mean_count = mean(count),
            median_count = median(count),
            iqr25 = quantile(count, probs = 0.25),
            iqr75 = quantile(count, probs = 0.75)) %>%
     ungroup() %>%
-    distinct(neuro_type, mean_count, iqr25, median_count, iqr75)
+    distinct(neuro_type, adult_ped, mean_count, iqr25, median_count, iqr75)
 
   non_neuro_patients <-
     data.frame(patient_num = setdiff(demo_processed_first$patient_num, neuro_pt_post)) %>%
@@ -275,67 +321,13 @@ runAnalysis <- function() {
   obs_first_hosp <- obs_first_hosp %>% filter(!patient_num %in% both_pts$patient_num)
   demo_processed_first <- demo_processed_first %>% filter(!patient_num %in% both_pts$patient_num)
   demo_raw <- demo_raw %>% filter(!patient_num %in% both_pts$patient_num)
-
-  comorb_list <- get_elix_mat(obs_first_hosp, icd_version)
-
-  index_scores_elix <- comorb_list$index_scores_elix
+  pre_neuro <- pre_neuro %>% filter(!patient_num %in% both_pts$patient_num)
 
   # ensure data is formatted correctly
-  index_scores_elix$patient_num <- as.character(index_scores_elix$patient_num)
   demo_raw$patient_num <- as.character(demo_raw$patient_num)
   obs_raw$patient_num <- as.character(obs_raw$patient_num)
   demo_processed_first$patient_num <- as.character(demo_processed_first$patient_num)
-  index_scores_elix$patient_num <- as.character(index_scores_elix$patient_num)
   nstay_df$patient_num <- as.character(nstay_df$patient_num)
-
-  index_scores_elix <- index_scores_elix %>%
-    right_join0(select(demo_raw, patient_num), by = "patient_num")
-
-  mapped_codes_table <- comorb_list$mapped_codes_table
-
-  elix_mat <- cor(select(
-    index_scores_elix,
-    -c(patient_num, elixhauser_score)
-  ))
-
-  # individual comorbidity matrixes
-  cns_pts <- neuro_patients %>%
-    filter(pns_cns == "Central") %>%
-    distinct(patient_num)
-
-  pns_pts <- neuro_patients %>%
-    filter(pns_cns == "Peripheral") %>%
-    distinct(patient_num)
-
-  index_scores_elix_cns <- index_scores_elix %>% filter(patient_num %in% cns_pts$patient_num)
-  index_scores_elix_pns <- index_scores_elix %>% filter(patient_num %in% pns_pts$patient_num)
-
-  elix_mat_cns <-
-    cor(select(
-    index_scores_elix_cns,
-    -c(patient_num, elixhauser_score)
-  ))
-
-  elix_mat_pns <-
-    cor(select(
-      index_scores_elix_pns,
-      -c(patient_num, elixhauser_score)
-    ))
-
-  elix_pca <- index_scores_elix %>%
-    select(-elixhauser_score) %>%
-    tibble::column_to_rownames("patient_num") %>%
-    as.matrix()
-
-  lpca_fit <- logisticPCA::logisticPCA(elix_pca, k = min(nrow(elix_pca), 10), m = 0)
-  # k = 10 principal components, m is solved for
-
-  deviance_expl <- lpca_fit$prop_deviance_expl
-
-  pca_covariates <- lpca_fit$PCs %>%
-    data.frame() %>%
-    `colnames<-`(paste0(".fittedPC", 1:10)) %>%
-    tibble::rownames_to_column("patient_num")
 
   ## additional formatting of data for modeling
   nstay_df <- neuro_patients %>%
@@ -346,31 +338,62 @@ runAnalysis <- function() {
     mutate(concept_code = fct_reorder(concept_code, time_to_first_discharge)) %>%
     left_join(neuro_icds, by = c("concept_code" = "icd"))
 
-  comorb_names_elix <- get_quan_elix_names()
+  # process comorbidity data by adults & pediatrics
+  # first, create separate dataframes for adult & pediatric patients
+  ped_obs <- demo_processed_first %>%
+    filter(adult_ped == "pediatric") %>%
+    distinct(patient_num) %>%
+    left_join(., obs_first_hosp)
 
-  icd_tables <- get_tables(
-    c("no_neuro_cond", "neuro_cond"),
-    nstay_df,
-    right_join0(index_scores_elix, nstay_df, by = "patient_num"),
-    comorb_names_elix,
-    blur_abs,
-    mask_thres,
-    "concept_code"
-  )[-3] # last element is not useful, remove
+  adult_obs <- demo_processed_first %>%
+    filter(adult_ped == "adult") %>%
+    distinct(patient_num) %>%
+    left_join(., obs_first_hosp)
+
+
+  # check that numbers align with what we expect
+  nrow(unique(data.frame(demo_raw$patient_num))) #6619
+  nrow(unique(data.frame(obs_raw$patient_num))) # 6702
+  nrow(unique(data.frame(demo_processed_first$patient_num))) #6619+85 (both) = 6704
+  nrow(unique(data.frame(obs_first_hosp$patient_num))) # 6617
+  nrow(unique(data.frame(adult_obs$patient_num))) #6579
+  nrow(unique(data.frame(ped_obs$patient_num))) # 40 + 6579 + 85 = 6704
+  table(demo_processed_first$adult_ped)
+
+
+  # process comorbidity data for survival analysis covariates and comorobidity/neuro risk analysis
+  if(currSiteId != c("BCH", "GOSH")) {
+    tryCatch({
+      comorb_adults <- process_comorb_data(adult_obs, icd_version, is_pediatric = FALSE)
+  },
+  error = function(cond) {
+    message("Original error message:")
+    message(cond)
+    message("No data to subset. Skipping for now...")
+    return(NULL) # return NA in case of error
+  }
+    )
+    }
+  tryCatch({
+    comorb_pediatrics <- process_comorb_data(ped_obs, icd_version, is_pediatric = TRUE)
+  },
+  error = function(cond) {
+    message("Original error message:")
+    message(cond)
+    message("No data to subset. Skipping for now...")
+    return(NULL) # return NA in case of error
+  }
+  )
 
   # perform the run_hosps to compute our primary analysis and save all results to a list object
   results <- list(
     site = CurrSiteId,
-    elix_mat = elix_mat,
-    elix_mat_cns = elix_mat_cns,
-    elix_mat_pns = elix_mat_cns,
-    deviance_expl = deviance_expl,
+    site_last_admission_date = site_last_admission_date,
+    comorb_adults = comorb_adults,
+    comorb_pediatrics = comorb_pediatrics,
     first_hosp_results = run_hosps(
-      neuro_patients,
-      neuro_pt_post,
-      non_neuro_patients,
       both_pts,
-      both,
+      both_counts,
       mask_thres,
       blur_abs,
       include_race,
@@ -378,44 +401,61 @@ runAnalysis <- function() {
       readmissions,
       demo_processed_first,
       obs_first_hosp,
-      neuro_icds,
-      index_scores_elix,
-      pca_covariates
+      neuro_icds
     )
   )
 
-  ## obfuscate comorbidity table
-  mapped_codes_table_obfus <- blur_it(mapped_codes_table, vars = 'n_patients', blur_abs, mask_thres)
-  mapped_codes_table_obfus <- mask_it(mapped_codes_table_obfus, var = 'n_patients', blur_abs, mask_thres)
+  # remove additional icd_tables from the comorb_* lists - these are saved under first_hosp_results
+  results$comorb_adults$icd_tables <- NULL
+  results$comorb_pediatrics$icd_tables <- NULL
 
-  # remove categories with 0 patients
-  results$mapped_codes_table_obfus <- mapped_codes_table_obfus %>%
-    filter(!n_patients == 0)
+  # remove list variables with PHI
+  results$comorb_adults$pca_covariates <- NULL
+  results$comorb_adults$index_scores_elix <- NULL
 
-  # remove "Both" patients from pre_neuro
-  pre_neuro <- pre_neuro %>%
-    filter(!patient_num %in% both_pts$patient_num)
+  results$comorb_pediatrics$pca_covariates <- NULL
+  results$comorb_pediatrics$index_scores_elix <- NULL
 
-  pre_cns_summary <- summary(pre_neuro$pre_admission_cns)
-  pre_pns_summary <- summary(pre_neuro$pre_admission_pns)
+  # process the pre-CNS/PNS code statistics
+  # stratify by age group
+  pre_neuro_adults <- demo_processed_first %>%
+    filter(adult_ped == "adult") %>%
+    distinct(patient_num, pre_admission_cns, pre_admission_pns)
+
+  pre_neuro_pediatrics <- demo_processed_first %>%
+    filter(adult_ped == "pediatric") %>%
+    distinct(patient_num, pre_admission_cns, pre_admission_pns)
+
+  pre_cns_adults_summary <- summary(pre_neuro_adults$pre_admission_cns)
+  pre_pns_adults_summary <- summary(pre_neuro_adults$pre_admission_pns)
+
+  pre_cns_pediatrics_summary <- summary(pre_neuro_pediatrics$pre_admission_cns)
+  pre_pns_pediatrics_summary <- summary(pre_neuro_pediatrics$pre_admission_pns)
+
+  # create a list of the pre-admission summary results
+  pre_admission_summary <- list(pre_cns_adults_summary = pre_cns_adults_summary,
+                                pre_pns_adults_summary = pre_pns_adults_summary,
+                                pre_cns_pediatrics_summary = pre_cns_pediatrics_summary,
+                                pre_pns_pediatrics_summary = pre_pns_pediatrics_summary,
+                                n_codes_per_patient = n_codes_per_patient)
+
 
   # add the pre cns and pns summaries
-  results$pre_cns_summary <- pre_cns_summary
-  results$pre_pns_summary <- pre_pns_summary
+  results$pre_admission_summary <- pre_admission_summary
 
-  # add n_codes_per_patients dataframe
-  results$n_codes_per_patient <- n_codes_per_patient
+  # end and print total run time
+  time.end.analysis=Sys.time()
+  time.analysis=time.end.analysis-time.start.analysis
+  print(paste('The analysis completed in', time.analysis))
 
- # timing for testing when we are not submitting results
- # time.end.analysis=Sys.time()
- # time.analysis=time.end.analysis-time.start.analysis
- # print(paste('The analysis completed in', time.analysis))
-
-
+  # remove unneccessary R objects
   rm(list = setdiff(ls(), c("CurrSiteId", "results")))
 
+  # append siteId to results file
   site_results <- paste0(CurrSiteId, "_results")
   assign(site_results, results)
+
+  # save results
   save(
     list = site_results,
     file = file.path(
@@ -438,9 +478,5 @@ runAnalysis <- function() {
     ),
     "\nPlease submit the result file by running submitAnalysis()\n"
   )
-
-  time.end.analysis=Sys.time()
-  time.analysis=time.end.analysis-time.start.analysis
-  print(paste('The analysis completed in', time.analysis))
 
 }
