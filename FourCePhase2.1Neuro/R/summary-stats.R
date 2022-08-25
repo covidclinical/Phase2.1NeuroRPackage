@@ -143,7 +143,8 @@ get_tables <- function(neuro_types,
                                         'readmitted')) {
 
   total_patients <- length(unique(demo_df$patient_num))
-  demo_obfus_table <- lapply(
+
+    demo_obfus_table <- lapply(
     vars_to_obfs,
     demo_stats,
     df = demo_df,
@@ -162,6 +163,7 @@ get_tables <- function(neuro_types,
       continuous_stats(demo_df, 'time_to_severe', 'time to severe', group_var),
       count_stats(demo_df, 'deceased', 'Alive', group_var, blur_abs, mask_thres),
       continuous_stats(demo_df, 'time_to_death', 'time to death', group_var),
+      count_stats(demo_df, "covid_discharged", group_var, blur_abs, group_var),
       continuous_stats(demo_df, 'n_readmissions', 'number of readmissions', group_var),
       continuous_stats(demo_df, 'pre_admission_cns', 'pre admission cns', group_var),
       continuous_stats(demo_df, 'pre_admission_pns', 'pre admission pns', group_var),
