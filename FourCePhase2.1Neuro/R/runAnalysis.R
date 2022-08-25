@@ -11,11 +11,14 @@
 #'
 runAnalysis <- function() {
 
+  # set timer for analysis
   print('Set timer - this analysis will take some time to run')
   time.start.analysis=Sys.time()
 
-  set.seed(446) # for obfuscation posterity
+  # set seed to maintain obfuscation prosterity
+  set.seed(446)
 
+  # specify use of dplyr for `select()` and `filter()` functions
   select <- dplyr::select
   filter <- dplyr::filter
 
@@ -30,6 +33,7 @@ runAnalysis <- function() {
   site_specs <- site_params %>%
     dplyr::filter(tolower(siteid) == tolower(currSiteId))
 
+  # specify obfuscation, blurring, and site specific params
   mask_thres <- site_specs$mask_thres
   blur_abs <- site_specs$blur_abs
   icd_version <- site_specs$icd_version
@@ -43,8 +47,8 @@ runAnalysis <- function() {
 
   FourCePhase2.1Data::runQC(currSiteId)
 
-  # count mask threshold
-  # absolute max of blurring range
+  ## load and apply pre-processing of 4CE Phase2.1 files
+  # apply special parameters for VA sites
   VA_site <- FALSE
 
   if (VA_site) {
@@ -79,6 +83,7 @@ runAnalysis <- function() {
       )
   }
 
+  # apply special params for MGB sites
   if (CurrSiteId == "MGB") {
     clin_raw <- clin_raw %>%
       group_by(patient_num) %>%
@@ -90,6 +95,7 @@ runAnalysis <- function() {
       ungroup()
   }
 
+  # load in and process all 4CE data from other sites
   demo_raw <- demo_raw %>%
     mutate(
       across(
@@ -203,7 +209,9 @@ runAnalysis <- function() {
     left_join(pre_neuro, by = "patient_num") %>%
     replace_na(list(n_readmissions = 0,
                     pre_admission_cns = 0,
-                    pre_admission_pns = 0))
+                    pre_admission_pns = 0)) %>%
+    # determine patients discharged from covid admission
+    mutate(covid_discharged = if_else(still_in_hospital == 1 & is.na(as.factor(first_discharge_date)), "Not Discharged", "Discharged"))
 
   # handle cases when a site may not have any cases of pre_admission codes
   if ("pre_admission_cns" %in% colnames(demo_processed_first)) {
@@ -274,7 +282,7 @@ runAnalysis <- function() {
     as.integer() %>%
     blur_mask_int_num(., blur_abs, mask_thres)
 
-  # save all 'both' counts
+  # save all 'both' counts - these have all been obfuscated via `blur_mask_int_num`
   both_counts <- list(both = both,
                       both_adult_pts = both_adult_pts,
                       both_ped_pts = both_ped_pts)
@@ -329,7 +337,7 @@ runAnalysis <- function() {
   demo_processed_first$patient_num <- as.character(demo_processed_first$patient_num)
   nstay_df$patient_num <- as.character(nstay_df$patient_num)
 
-  ## additional formatting of data for modeling
+  ## additional formatting of neuro patient data for modeling
   nstay_df <- neuro_patients %>%
     data.frame() %>%
     select(patient_num, concept_code) %>%
@@ -405,7 +413,7 @@ runAnalysis <- function() {
     )
   )
 
-  # remove additional icd_tables from the comorb_* lists - these are saved under first_hosp_results
+  # # remove additional icd_tables from the comorb_* lists - these are saved under first_hosp_results
   results$comorb_adults$icd_tables <- NULL
   results$comorb_pediatrics$icd_tables <- NULL
 

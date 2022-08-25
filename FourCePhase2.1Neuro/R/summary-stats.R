@@ -43,9 +43,9 @@ continuous_stats <- function(df, cont_var, name, group_var,...) {
   df %>%
     select(group_var, cont_var) %>%
     group_by(!!group_var) %>%
-    summarise(median_var = median(!!cont_var, na.rm = TRUE),
-              min_var = min(!!cont_var, na.rm = TRUE),
-              max_var = max(!!cont_var, na.rm = TRUE),
+    summarise(median_var = round(median(!!cont_var, na.rm = TRUE),1),
+              min_var = round(min(!!cont_var, na.rm = TRUE),1),
+              max_var = round(max(!!cont_var, na.rm = TRUE),1),
               mean_var = mean(!!cont_var, na.rm = TRUE),
               sd_var = sd(!!cont_var, na.rm = TRUE),
               .groups = 'drop') %>%
@@ -140,7 +140,8 @@ get_tables <- function(neuro_types,
                                         'race',
                                         'Severity',
                                         'Survival',
-                                        'readmitted')) {
+                                        'readmitted',
+                                        'covid_discharged')) {
 
   total_patients <- length(unique(demo_df$patient_num))
 
@@ -163,7 +164,7 @@ get_tables <- function(neuro_types,
       continuous_stats(demo_df, 'time_to_severe', 'time to severe', group_var),
       count_stats(demo_df, 'deceased', 'Alive', group_var, blur_abs, mask_thres),
       continuous_stats(demo_df, 'time_to_death', 'time to death', group_var),
-      count_stats(demo_df, "covid_discharged", group_var, blur_abs, group_var),
+      count_stats(demo_df, 'covid_discharged', 'not discharged', group_var, blur_abs, mask_thres),
       continuous_stats(demo_df, 'n_readmissions', 'number of readmissions', group_var),
       continuous_stats(demo_df, 'pre_admission_cns', 'pre admission cns', group_var),
       continuous_stats(demo_df, 'pre_admission_pns', 'pre admission pns', group_var),

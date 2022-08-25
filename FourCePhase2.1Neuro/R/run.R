@@ -288,6 +288,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
 
       #pointwise mutal information
       # naive is on the raw data; whereas the other metrics on on the predictions
+      # note: NAs are returned when counts are 0s
       print('calculate pmi')
       pmi.pns=mean(pred.pns.both/(pred*pred.pns))
       print(pmi.pns)
@@ -384,10 +385,7 @@ resam=function(vv,data,covariate){
 
 }
 
-run_hosps <- function(#neuro_patients,
-                      #neuro_pt_post,
-                      #non_neuro_patients,
-                      both_pts,
+run_hosps <- function(both_pts,
                       both_counts,
                       mask_thres,
                       blur_abs,
@@ -567,7 +565,14 @@ run_hosps <- function(#neuro_patients,
 
   ## ----save-results---------------------------------------------------------
   tryCatch({
-  cpns_results <- c('surv_results_adults_lpca_30'  = surv_results_adults_lpca_30,
+
+  # save demo table for table1
+  tableone <- list('tableone_adults' = obfus_tables_adults,
+                'tableone_pediatrics' = obfus_tables_pediatrics)
+
+
+  # save all survival results
+  survival_results <- list('surv_results_adults_lpca_30'  = surv_results_adults_lpca_30,
                     'surv_results_adults_lpca_60' = surv_results_adults_lpca_60,
                     'surv_results_adults_lpca_90' = surv_results_adults_lpca_90,
                     'surv_results_adults_score_30' = surv_results_adults_score_30,
@@ -579,6 +584,10 @@ run_hosps <- function(#neuro_patients,
                     'surv_results_pediatrics_score_30' = surv_results_pediatrics_score_30,
                     'surv_results_pediatrics_score_60' = surv_results_pediatrics_score_60,
                     'surv_results_pediatrics_score_90' = surv_results_pediatrics_score_90)
+
+  cpns_results <- c('tableone' = tableone,
+                    'survival_results' = survival_results)
+
   },
   error = function(cond) {
     message("Original error message:")
@@ -657,6 +666,15 @@ process_comorb_data <- function(df, icd_version, is_pediatric) {
       filter(age_group %in% c("00to02", "06to11", "12to17"))
   }
 
+  # filter by age
+  if(is_pediatric == FALSE){
+    nstay_filtered <- nstay_df %>%
+      filter(age_group %in% c("18to25", "26to49", "50to69", "70to79", "80plus"))
+  } else if (is_pediatric == TRUE) {
+    nstay_filtered <- nstay_df %>%
+      filter(age_group %in% c("00to02", "06to11", "12to17"))
+  }
+
   mapped_codes_table <- comorb_list$mapped_codes_table
 
   elix_mat <- cor(select(
@@ -707,9 +725,9 @@ process_comorb_data <- function(df, icd_version, is_pediatric) {
   comorb_names_elix <- get_quan_elix_names()
 
   icd_tables <- get_tables(
-    c("no_neuro_cond", "neuro_cond"),
-    nstay_df,
-    right_join0(index_scores_elix %>% select(-age_group), nstay_df, by = "patient_num"),
+    c("None", "Peripheral", "Central"),
+    nstay_filtered,
+    right_join0(index_scores_elix %>% select(-age_group), nstay_filtered, by = "patient_num"),
     comorb_names_elix,
     blur_abs,
     mask_thres,
@@ -729,8 +747,7 @@ process_comorb_data <- function(df, icd_version, is_pediatric) {
     select(-age_group)
 
   # save output to a list
-  comorb_results <- list(icd_tables = icd_tables,
-                         elix_mat = elix_mat,
+  comorb_results <- list(elix_mat = elix_mat,
                          elix_mat_cns = elix_mat_cns,
                          elix_mat_pns = elix_mat_cns,
                          deviance_expl = deviance_expl,
