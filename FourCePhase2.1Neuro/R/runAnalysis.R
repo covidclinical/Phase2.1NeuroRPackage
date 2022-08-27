@@ -131,6 +131,7 @@ runAnalysis <- function() {
   ## start analysis
 
   # compute admission timelines
+  tryCatch({
   comp_readmissions <- clin_raw %>%
     group_by(patient_num) %>%
     arrange(days_since_admission, .by_group = TRUE) %>%
@@ -146,6 +147,13 @@ runAnalysis <- function() {
       first_discharge_date = min(first_discharge_date, na.rm = TRUE)
     ) %>%
     ungroup()
+  },
+  error = function(cond) {
+    message("Original error message:")
+    message(cond)
+    return(NULL) # return NA in case of error
+  }
+  )
 
   # compute number of readmissions
   n_readms <- comp_readmissions %>%
