@@ -182,31 +182,30 @@ get_tables <- function(neuro_types,
       )
     )
   )
-  elix_obfus_table1 <-
-    Reduce(
-      function(...)
-        left_join(..., by = c("Comorbidity", "Abbreviation")),
-      lapply(
-        neuro_types,
-        list_table1,
-        df = scores_unique,
-        num_pats = total_patients,
-        comorb_names = comorb_names_elix,
-        group_var = group_var,
-        blur_abs = blur_abs,
-        mask_thres = mask_thres
-      )
-    ) %>%
-    mutate(
-      n_Total = rowSums(select(., starts_with('n_'))),
-      prop_Total = n_Total / total_patients
-    ) %>%
-    arrange(desc(n_Total))
+  # elix_obfus_table1 <-
+  #   Reduce(
+  #     function(...)
+  #       left_join(..., by = c("Comorbidity", "Abbreviation")),
+  #     lapply(
+  #       neuro_types,
+  #       list_table1,
+  #       df = scores_unique,
+  #       num_pats = total_patients,
+  #       comorb_names = comorb_names_elix,
+  #       group_var = group_var,
+  #       blur_abs = blur_abs,
+  #       mask_thres = mask_thres
+  #     )
+  #   ) %>%
+  #   mutate(
+  #     n_Total = rowSums(select(., starts_with('n_'))),
+  #     prop_Total = n_Total / total_patients
+  #   ) %>%
+  #   arrange(desc(n_Total))
 
   list(
     demo_table = demo_obfus_table,
-    other_obfus_table = other_obfus_table,
-    elix_obfus_table1 = elix_obfus_table1
+    other_obfus_table = other_obfus_table
   )
 }
 

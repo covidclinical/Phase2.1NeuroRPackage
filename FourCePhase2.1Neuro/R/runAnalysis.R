@@ -11,6 +11,8 @@
 #'
 runAnalysis <- function() {
 
+  sink("analysis_output.txt")
+
   # set timer for analysis
   print('Set timer - this analysis will take some time to run')
   time.start.analysis=Sys.time()
@@ -348,25 +350,26 @@ runAnalysis <- function() {
 
   # process comorbidity data by adults & pediatrics
   # first, create separate dataframes for adult & pediatric patients
-  ped_obs <- demo_processed_first %>%
-    filter(adult_ped == "pediatric") %>%
-    distinct(patient_num) %>%
-    left_join(., obs_first_hosp)
-
   adult_obs <- demo_processed_first %>%
     filter(adult_ped == "adult") %>%
     distinct(patient_num) %>%
     left_join(., obs_first_hosp)
 
+  ped_obs <- demo_processed_first %>%
+    filter(adult_ped == "pediatric") %>%
+    distinct(patient_num) %>%
+    left_join(., obs_first_hosp)
 
+
+  ## debugging
   # check that numbers align with what we expect
-  nrow(unique(data.frame(demo_raw$patient_num))) #6619
-  nrow(unique(data.frame(obs_raw$patient_num))) # 6702
-  nrow(unique(data.frame(demo_processed_first$patient_num))) #6619+85 (both) = 6704
-  nrow(unique(data.frame(obs_first_hosp$patient_num))) # 6617
-  nrow(unique(data.frame(adult_obs$patient_num))) #6579
-  nrow(unique(data.frame(ped_obs$patient_num))) # 40 + 6579 + 85 = 6704
-  table(demo_processed_first$adult_ped)
+  # nrow(unique(data.frame(demo_raw$patient_num)))
+  # nrow(unique(data.frame(obs_raw$patient_num)))
+  # nrow(unique(data.frame(demo_processed_first$patient_num)))
+  # nrow(unique(data.frame(obs_first_hosp$patient_num)))
+  # nrow(unique(data.frame(adult_obs$patient_num)))
+  # nrow(unique(data.frame(ped_obs$patient_num)))
+  # table(demo_processed_first$adult_ped)
 
 
   # process comorbidity data for survival analysis covariates and comorobidity/neuro risk analysis
@@ -397,8 +400,8 @@ runAnalysis <- function() {
   results <- list(
     site = CurrSiteId,
     site_last_admission_date = site_last_admission_date,
-    comorb_adults = comorb_adults,
-    comorb_pediatrics = comorb_pediatrics,
+    comorbidities = list(comorb_adults = comorb_adults,
+                         comorb_pediatrics = comorb_pediatrics),
     first_hosp_results = run_hosps(
       both_pts,
       both_counts,
@@ -414,15 +417,15 @@ runAnalysis <- function() {
   )
 
   # # remove additional icd_tables from the comorb_* lists - these are saved under first_hosp_results
-  results$comorb_adults$icd_tables <- NULL
-  results$comorb_pediatrics$icd_tables <- NULL
+  results$comorbidities$comorb_adults$icd_tables <- NULL
+  results$comorbidities$comorb_pediatrics$icd_tables <- NULL
 
   # remove list variables with PHI
-  results$comorb_adults$pca_covariates <- NULL
-  results$comorb_adults$index_scores_elix <- NULL
+  results$comorbidities$comorb_adults$pca_covariates <- NULL
+  results$comorbidities$comorb_adults$index_scores_elix <- NULL
 
-  results$comorb_pediatrics$pca_covariates <- NULL
-  results$comorb_pediatrics$index_scores_elix <- NULL
+  results$comorbidities$comorb_pediatrics$pca_covariates <- NULL
+  results$comorbidities$comorb_pediatrics$index_scores_elix <- NULL
 
   # process the pre-CNS/PNS code statistics
   # stratify by age group
@@ -486,5 +489,7 @@ runAnalysis <- function() {
     ),
     "\nPlease submit the result file by running submitAnalysis()\n"
   )
+
+  sink()
 
 }
