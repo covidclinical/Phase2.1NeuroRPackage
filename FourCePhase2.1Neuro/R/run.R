@@ -824,7 +824,7 @@ process_comorb_data <- function(df, icd_version, is_pediatric) {
 
   ## obfuscate comorbidity table
   mapped_codes_table_obfus <- blur_it(mapped_codes_table, vars = 'n_patients', blur_abs, mask_thres)
-  mapped_codes_table_obfus <- mask_it(mapped_codes_table_obfus, var = 'n_patients', blur_abs, mask_thres)
+  #mapped_codes_table_obfus <- mask_it(mapped_codes_table_obfus, var = 'n_patients', blur_abs, mask_thres)
 
   # remove categories with 0 patients
   mapped_codes_table_obfus <- mapped_codes_table_obfus %>%
