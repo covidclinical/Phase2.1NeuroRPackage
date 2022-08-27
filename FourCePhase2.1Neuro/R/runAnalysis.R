@@ -11,7 +11,7 @@
 #'
 runAnalysis <- function() {
 
-  #sink("analysis_output.txt")
+  sink("analysis_output.txt")
 
   # set timer for analysis
   print('Set timer - this analysis will take some time to run')
@@ -510,6 +510,6 @@ runAnalysis <- function() {
     "\nPlease submit the result file by running submitAnalysis()\n"
   )
 
-  #sink()
+  sink()
 
 }
