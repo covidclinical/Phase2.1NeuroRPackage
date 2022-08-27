@@ -43,9 +43,9 @@ continuous_stats <- function(df, cont_var, name, group_var,...) {
   df %>%
     select(group_var, cont_var) %>%
     group_by(!!group_var) %>%
-    summarise(median_var = median(!!cont_var, na.rm = TRUE),
-              min_var = min(!!cont_var, na.rm = TRUE),
-              max_var = max(!!cont_var, na.rm = TRUE),
+    summarise(median_var = round(median(!!cont_var, na.rm = TRUE),1),
+              min_var = round(min(!!cont_var, na.rm = TRUE),1),
+              max_var = round(max(!!cont_var, na.rm = TRUE),1),
               mean_var = mean(!!cont_var, na.rm = TRUE),
               sd_var = sd(!!cont_var, na.rm = TRUE),
               .groups = 'drop') %>%
@@ -140,10 +140,12 @@ get_tables <- function(neuro_types,
                                         'race',
                                         'Severity',
                                         'Survival',
-                                        'readmitted')) {
+                                        'readmitted',
+                                        'covid_discharged')) {
 
   total_patients <- length(unique(demo_df$patient_num))
-  demo_obfus_table <- lapply(
+
+    demo_obfus_table <- lapply(
     vars_to_obfs,
     demo_stats,
     df = demo_df,
@@ -162,6 +164,7 @@ get_tables <- function(neuro_types,
       continuous_stats(demo_df, 'time_to_severe', 'time to severe', group_var),
       count_stats(demo_df, 'deceased', 'Alive', group_var, blur_abs, mask_thres),
       continuous_stats(demo_df, 'time_to_death', 'time to death', group_var),
+      count_stats(demo_df, 'covid_discharged', 'not discharged', group_var, blur_abs, mask_thres),
       continuous_stats(demo_df, 'n_readmissions', 'number of readmissions', group_var),
       continuous_stats(demo_df, 'pre_admission_cns', 'pre admission cns', group_var),
       continuous_stats(demo_df, 'pre_admission_pns', 'pre admission pns', group_var),
@@ -179,31 +182,30 @@ get_tables <- function(neuro_types,
       )
     )
   )
-  elix_obfus_table1 <-
-    Reduce(
-      function(...)
-        left_join(..., by = c("Comorbidity", "Abbreviation")),
-      lapply(
-        neuro_types,
-        list_table1,
-        df = scores_unique,
-        num_pats = total_patients,
-        comorb_names = comorb_names_elix,
-        group_var = group_var,
-        blur_abs = blur_abs,
-        mask_thres = mask_thres
-      )
-    ) %>%
-    mutate(
-      n_Total = rowSums(select(., starts_with('n_'))),
-      prop_Total = n_Total / total_patients
-    ) %>%
-    arrange(desc(n_Total))
+  # elix_obfus_table1 <-
+  #   Reduce(
+  #     function(...)
+  #       left_join(..., by = c("Comorbidity", "Abbreviation")),
+  #     lapply(
+  #       neuro_types,
+  #       list_table1,
+  #       df = scores_unique,
+  #       num_pats = total_patients,
+  #       comorb_names = comorb_names_elix,
+  #       group_var = group_var,
+  #       blur_abs = blur_abs,
+  #       mask_thres = mask_thres
+  #     )
+  #   ) %>%
+  #   mutate(
+  #     n_Total = rowSums(select(., starts_with('n_'))),
+  #     prop_Total = n_Total / total_patients
+  #   ) %>%
+  #   arrange(desc(n_Total))
 
   list(
     demo_table = demo_obfus_table,
-    other_obfus_table = other_obfus_table,
-    elix_obfus_table1 = elix_obfus_table1
+    other_obfus_table = other_obfus_table
   )
 }
 
@@ -217,23 +219,12 @@ get_table1 <- function(
   proppat_col = sym(paste('prop', pat_col, sep = '_'))
   comorbidities_map = comorbidities$Abbreviation
 
-  message("Print comorbidities")
-  print(comorbidities)
-
   df <- df %>%
     select(all_of(comorbidities_map)) %>%
     colSums() %>%
     data.frame(n_patients = .)
 
-  message("Print row names to evalaute abbreviations")
-  print(rownames(df))
-
   df <- df %>% tibble::rownames_to_column("Abbreviation")
-
-  message("Print row names again to evalaute abbreviations.These will be numbers now.")
-  print(rownames(df))
-  message("Print Abbreviation column")
-  print(df$Abbreviation)
 
   df <- df %>%
     blur_it('n_patients', ...) %>%
@@ -241,13 +232,6 @@ get_table1 <- function(
     rename(!!npat_col := n_patients,
            !!proppat_col := prop_patients) %>%
     right_join(comorbidities, ., by = "Abbreviation")
-
-  message("Print row names to evalaute abbreviations")
-  print(rownames(df))
-  message("Print Abbreviation column")
-  print(df$Abbreviation)
-  message("Print Comorbidity column")
-  print(df$Comorbidity)
 
   df
 }
