@@ -47,7 +47,7 @@ runAnalysis <- function() {
     subdir = "FourCePhase2.1Data", upgrade = FALSE
   )
 
-  FourCePhase2.1Data::runQC(currSiteId)
+  #FourCePhase2.1Data::runQC(currSiteId)
 
   ## load and apply pre-processing of 4CE Phase2.1 files
   # apply special parameters for VA sites
