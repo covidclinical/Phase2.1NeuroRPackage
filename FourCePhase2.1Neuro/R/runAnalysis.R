@@ -143,10 +143,22 @@ runAnalysis <- function() {
         first_out |
         (delta_hospitalized == 1 &
            !duplicated(delta_hospitalized == 1)),
-      first_discharge_date = case_when(first_out==TRUE ~ lag(calendar_date)),
-      first_discharge_date = min(first_discharge_date, na.rm = TRUE)
-    ) %>%
+      first_discharge_date = case_when(first_out==TRUE ~ lag(calendar_date))) %>%
     ungroup()
+
+  # identify first_discharge_date for each patient
+  df_first_discharge_date = comp_readmissions %>%
+         group_by(patient_num) %>%
+         arrange(days_since_admission, .by_group = TRUE) %>%
+         filter(!is.na(first_discharge_date)) %>%
+         slice(1L)
+
+  # add back to main comp_readmissions df
+  comp_readmissions <- comp_readmissions %>%
+         select(-first_discharge_date) %>%
+         left_join(., df_first_discharge_date %>%
+                     select(patient_num, first_discharge_date),
+                                   by = "patient_num")
   },
   error = function(cond) {
     message("Original error message:")
