@@ -131,6 +131,7 @@ runAnalysis <- function() {
   ## start analysis
 
   # compute admission timelines
+  print('compute readmission timelines')
   tryCatch({
   comp_readmissions <- clin_raw %>%
     group_by(patient_num) %>%
@@ -147,6 +148,7 @@ runAnalysis <- function() {
     ungroup()
 
   # identify first_discharge_date for each patient
+  print('determine first discharge date')
   df_first_discharge_date = comp_readmissions %>%
          group_by(patient_num) %>%
          arrange(days_since_admission, .by_group = TRUE) %>%
@@ -154,6 +156,7 @@ runAnalysis <- function() {
          slice(1L)
 
   # add back to main comp_readmissions df
+  print('add first discharge date back to readmission df')
   comp_readmissions <- comp_readmissions %>%
          select(-first_discharge_date) %>%
          left_join(., df_first_discharge_date %>%
