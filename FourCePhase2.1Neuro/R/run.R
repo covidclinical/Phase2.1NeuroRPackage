@@ -125,7 +125,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
     # fit initial survival model in order to create our table counts with the survminer package
     tryCatch(
       {
-        fit = survival::survfit(Surv(time, delta)~neuro_post, data = df)
+        fit = survival::survfit(survival::Surv(time, delta)~neuro_post, data = df)
 
         # evaluate latest time point to prevent errors with using the 'break.time.by' function
         if(max(fit[['time']]) < survtable_interval) {
@@ -163,7 +163,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
         covariate=model.matrix(as.formula(paste("Surv(time,delta==1)", '~',
                                                 independ_vars)),data=df)[,-1] #[-1] removes intercept
         data=data.frame( cbind('time'=df$time,'delta'=df$delta,covariate) )
-        fit=coxph(as.formula(paste("Surv(time,delta==1)", '~',
+        fit=survival::coxph(as.formula(paste("survival::Surv(time,delta==1)", '~',
                                    paste(colnames(data[,-(1:2)]),collapse='+'))),data=data)
         newdata=NULL
         newdata[[1]]= data.frame(cbind(VTM(c(0,0),nrow(covariate)),covariate[,-(1:2)]) )
@@ -676,8 +676,6 @@ run_hosps <- function(both_pts,
   error = function(cond) {
     message("Original error message:")
     message(cond)
-    message("No data to subset. Skipping for now...")
-    return(NULL) # return NA in case of error
   }
   )
 
