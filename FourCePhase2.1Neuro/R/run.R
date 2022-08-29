@@ -444,11 +444,11 @@ run_hosps <- function(both_pts,
 
   print('calculate unique comorb scores')
   scores_unique_adults <- comorb_adults$index_scores_elix %>%
-    right_join(demo_df_adults, by = "patient_num") %>%
+    right_join0(., demo_df_adults, by = "patient_num") %>%
     left_join(comorb_adults$pca_covariates, by = "patient_num")
 
   scores_unique_pediatrics <- comorb_pediatrics$index_scores_elix %>%
-    right_join(demo_df_pediatrics, by = "patient_num") %>%
+    right_join0(., demo_df_pediatrics, by = "patient_num") %>%
     left_join(comorb_pediatrics$pca_covariates, by = "patient_num")
 
   # for elixhauser
