@@ -727,7 +727,7 @@ get_elix_mat <- function(obs_raw, icd_version, t1 = -365, t2 = -15, map_type = "
 ## process_comorb_data() computes LPCA by the specified patient population (pediatric or adult)
 # df - dataframe - adult_obs or ped_obs depending on the population to analyze
 # adult_pediatric - TRUE/FALSE value, where TRUE indicates to analyze the pediatric population
-process_comorb_data <- function(df, demo_raw, icd_version, is_pediatric) {
+process_comorb_data <- function(df, demo_raw, nstay_df, icd_version, is_pediatric, blur_abs, mask_thres) {
 
   comorb_list <- get_elix_mat(df, icd_version)
 

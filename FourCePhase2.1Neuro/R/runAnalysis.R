@@ -398,7 +398,7 @@ runAnalysis <- function() {
   # process comorbidity data for survival analysis covariates and comorobidity/neuro risk analysis
   if(currSiteId != c("BCH", "GOSH")) {
     tryCatch({
-      comorb_adults <- process_comorb_data(adult_obs, demo_raw, icd_version, is_pediatric = FALSE)
+      comorb_adults <- process_comorb_data(df, demo_raw, nstay_df, icd_version, is_pediatric, blur_abs, mask_thres)
   },
   error = function(cond) {
     message("Original error message:")
@@ -409,7 +409,7 @@ runAnalysis <- function() {
     )
     }
   tryCatch({
-    comorb_pediatrics <- process_comorb_data(ped_obs, demo_raw, icd_version, is_pediatric = TRUE)
+    comorb_pediatrics <- process_comorb_data(df, demo_raw, nstay_df, icd_version, is_pediatric, blur_abs, mask_thres)
   },
   error = function(cond) {
     message("Original error message:")
