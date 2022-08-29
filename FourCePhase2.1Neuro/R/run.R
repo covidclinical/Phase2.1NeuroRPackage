@@ -232,7 +232,8 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
         message("Original error message:")
         message(cond)
         message('Skipping for now...')
-        return(NULL) }
+        #return(NULL)
+        }
     )
 
       }
@@ -343,7 +344,8 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
       message("Original error message:")
       message(cond)
       message('Skipping for now...')
-      return(NULL) }
+      #return(NULL)
+      }
     )
   }
   output
