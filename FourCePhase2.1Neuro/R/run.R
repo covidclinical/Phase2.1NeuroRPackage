@@ -740,6 +740,7 @@ process_comorb_data <- function(df, demo_raw, nstay_df, icd_version, is_pediatri
     left_join(., demo_raw %>% select(patient_num, age_group), by = "patient_num")
 
   # filter by age
+  print('filter index_scores_elix by age')
   if(is_pediatric == FALSE){
     index_scores_elix <- index_scores_elix %>%
       filter(age_group %in% c("18to25", "26to49", "50to69", "70to79", "80plus"))
@@ -749,6 +750,7 @@ process_comorb_data <- function(df, demo_raw, nstay_df, icd_version, is_pediatri
   }
 
   # filter by age
+  print('filter nstay_df by age')
   if(is_pediatric == FALSE){
     nstay_filtered <- nstay_df %>%
       filter(age_group %in% c("18to25", "26to49", "50to69", "70to79", "80plus"))
