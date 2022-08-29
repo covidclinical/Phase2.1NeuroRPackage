@@ -135,7 +135,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
           survtable_interval
         }
 
-        survtable = ggrisktable(fit,
+        survtable = survminer::ggrisktable(fit,
                                 break.time.by = survtable_interval)
 
         # mask and blur for obfuscation
