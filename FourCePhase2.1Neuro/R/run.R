@@ -408,6 +408,7 @@ run_hosps <- function(both_pts,
                       readmissions,
                       demo_processed,
                       obs_raw,
+                      neuro_patients,
                       neuro_icds) {
 
 

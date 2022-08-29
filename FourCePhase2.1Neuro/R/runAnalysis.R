@@ -435,6 +435,7 @@ runAnalysis <- function() {
       readmissions,
       demo_processed_first,
       obs_first_hosp,
+      neuro_patients,
       neuro_icds
     )
   )
