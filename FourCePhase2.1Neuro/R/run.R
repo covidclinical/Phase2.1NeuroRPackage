@@ -172,7 +172,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
         survout=NULL;surv=NULL
         for (i in 1:length(newdata)){
           colnames(newdata[[i]])=colnames(covariate)
-          survout[[i]]=survfit(fit,newdata=newdata[[i]] )
+          survout[[i]]=survival::survfit(fit,newdata=newdata[[i]] )
           surv[[i]]=apply(survout[[i]]$surv, 1, mean)
 
           # to print plot
