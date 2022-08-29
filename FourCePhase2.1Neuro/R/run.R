@@ -151,7 +151,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
         message("Original error message:")
         message(cond)
         message("Skipping for now...")
-        return(NULL) # return NA in case of error
+        #return(NULL) # return NA in case of error
       }
     )
 
@@ -160,7 +160,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
     tryCatch(
       {
 
-        covariate=model.matrix(as.formula(paste("Surv(time,delta==1)", '~',
+        covariate=model.matrix(as.formula(paste("survival::Surv(time,delta==1)", '~',
                                                 independ_vars)),data=df)[,-1] #[-1] removes intercept
         data=data.frame( cbind('time'=df$time,'delta'=df$delta,covariate) )
         fit=survival::coxph(as.formula(paste("survival::Surv(time,delta==1)", '~',
@@ -557,8 +557,7 @@ run_hosps <- function(both_pts,
       error = function(cond) {
         message("Original error message:")
         message(cond)
-        message("No data to subset. Skipping for now...")
-        return(NULL) # return NA in case of error
+       # return(NULL) # return NA in case of error
       }
     )
     return(obfus_tables)
@@ -610,8 +609,7 @@ run_hosps <- function(both_pts,
     error = function(cond) {
       message("Original error message:")
       message(cond)
-      message("No data to subset. Skipping for now...")
-      return(NULL) # return NA in case of error
+      #return(NULL) # return NA in case of error
     }
     )
   }
@@ -633,8 +631,6 @@ run_hosps <- function(both_pts,
   error = function(cond) {
     message("Original error message:")
     message(cond)
-    message("No data to subset. Skipping for now...")
-    return(NULL) # return NA in case of error
   }
   )
 
