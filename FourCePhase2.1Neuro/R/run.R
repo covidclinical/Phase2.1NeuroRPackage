@@ -736,7 +736,7 @@ process_comorb_data <- function(df, demo_raw, icd_version, is_pediatric) {
   # ensure data is formatted correctly
   index_scores_elix$patient_num <- as.character(index_scores_elix$patient_num)
 
-  index_scores_elixx <- index_scores_elix %>%
+  index_scores_elix <- index_scores_elix %>%
     left_join(., demo_raw %>% select(patient_num, age_group), by = "patient_num")
 
   # filter by age
