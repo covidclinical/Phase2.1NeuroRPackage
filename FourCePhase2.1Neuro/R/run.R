@@ -409,7 +409,9 @@ run_hosps <- function(both_pts,
                       demo_processed,
                       obs_raw,
                       neuro_patients,
-                      neuro_icds) {
+                      neuro_icds,
+                      comorb_adults,
+                      comorb_pediatrics) {
 
 
   ### CNS vs PNS

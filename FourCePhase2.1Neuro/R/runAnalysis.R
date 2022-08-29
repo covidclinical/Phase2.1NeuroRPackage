@@ -436,7 +436,9 @@ runAnalysis <- function() {
       demo_processed_first,
       obs_first_hosp,
       neuro_patients,
-      neuro_icds
+      neuro_icds,
+      comorb_adults,
+      comorb_pediatrics
     )
   )
 
