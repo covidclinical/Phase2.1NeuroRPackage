@@ -151,7 +151,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
         message("Original error message:")
         message(cond)
         message("Skipping for now...")
-        #return(NULL) # return NA in case of error
+        return(NULL) # return NA in case of error
       }
     )
 
@@ -232,7 +232,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
         message("Original error message:")
         message(cond)
         message('Skipping for now...')
-        #return(NULL)
+        return(NULL)
         }
     )
 
@@ -344,7 +344,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
       message("Original error message:")
       message(cond)
       message('Skipping for now...')
-      #return(NULL)
+      return(NULL)
       }
     )
   }
@@ -559,7 +559,7 @@ run_hosps <- function(both_pts,
       error = function(cond) {
         message("Original error message:")
         message(cond)
-       # return(NULL) # return NA in case of error
+        return(NULL) # return NA in case of error
       }
     )
     return(obfus_tables)
@@ -611,7 +611,7 @@ run_hosps <- function(both_pts,
     error = function(cond) {
       message("Original error message:")
       message(cond)
-      #return(NULL) # return NA in case of error
+      return(NULL) # return NA in case of error
     }
     )
   }
@@ -633,6 +633,7 @@ run_hosps <- function(both_pts,
   error = function(cond) {
     message("Original error message:")
     message(cond)
+    return(NULL) # return NA in case of error
   }
   )
 
@@ -674,6 +675,7 @@ run_hosps <- function(both_pts,
   error = function(cond) {
     message("Original error message:")
     message(cond)
+    return(NULL) # return NA in case of error
   }
   )
 
