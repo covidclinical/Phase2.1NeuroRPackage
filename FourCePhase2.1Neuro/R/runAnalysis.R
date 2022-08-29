@@ -399,7 +399,7 @@ runAnalysis <- function() {
   if(currSiteId != c("BCH", "GOSH")) {
     print("processing adult comorbidities")
     tryCatch({
-      comorb_adults <- process_comorb_data(adult_obs, demo_raw, nstay_df, icd_version, is_pediatric = FALSE, blur_abs, mask_thres)
+      comorb_adults <- process_comorb_data(adult_obs, demo_raw, nstay_df, neuro_patients, icd_version, is_pediatric = FALSE, blur_abs, mask_thres)
   },
   error = function(cond) {
     message("Original error message:")
@@ -410,7 +410,7 @@ runAnalysis <- function() {
     }
   tryCatch({
     print("processing pediatric comorbidities")
-    comorb_pediatrics <- process_comorb_data(ped_obs, demo_raw, nstay_df, icd_version, is_pediatric = TRUE, blur_abs, mask_thres)
+    comorb_pediatrics <- process_comorb_data(ped_obs, demo_raw, nstay_df, neuro_patients, icd_version, is_pediatric = TRUE, blur_abs, mask_thres)
   },
   error = function(cond) {
     message("Original error message:")
