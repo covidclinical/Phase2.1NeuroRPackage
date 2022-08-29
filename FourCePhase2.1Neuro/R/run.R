@@ -766,28 +766,34 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
       filter(age_group %in% c("00to02", "06to11", "12to17"))
   }
 
+  print('save mapped_codes_table')
   mapped_codes_table <- comorb_list$mapped_codes_table
 
+  print('construct elixhauser comorbidity matrix')
   elix_mat <- cor(select(
     index_scores_elix,
     -c(patient_num, elixhauser_score, age_group)
   ))
 
   # individual comorbidity matrixes
+  print('save cns comorbidity matrix')
   cns_pts <- neuro_patients %>%
     filter(pns_cns == "Central") %>%
     distinct(patient_num)
 
+  print('save pns comorbidity matrix')
   pns_pts <- neuro_patients %>%
     filter(pns_cns == "Peripheral") %>%
     distinct(patient_num)
 
+  print('pre-process comorbidity index dataframes')
   index_scores_elix_cns <- index_scores_elix %>%
     filter(patient_num %in% cns_pts$patient_num)
 
   index_scores_elix_pns <- index_scores_elix %>%
     filter(patient_num %in% pns_pts$patient_num)
 
+  print('compute correlation matrixes')
   elix_mat_cns <-
     cor(select(
       index_scores_elix_cns,
@@ -800,6 +806,7 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
       -c(patient_num, elixhauser_score, age_group)
     ))
 
+  print('prepare for LPCA analysis')
   elix_pca <- index_scores_elix %>%
     select(-elixhauser_score, -age_group) %>%
     tibble::column_to_rownames("patient_num") %>%
@@ -807,8 +814,10 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
 
   ## logicstic pca
   # k = 10 principal components, m is solved for
+  print('fit LPCA model')
   lpca_fit <- logisticPCA::logisticPCA(elix_pca, k = min(nrow(elix_pca), 10), m = 0)
 
+  print('save deviance and pca covariates')
   deviance_expl <- lpca_fit$prop_deviance_expl
 
   pca_covariates <- lpca_fit$PCs %>%
@@ -816,11 +825,13 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
     `colnames<-`(paste0(".fittedPC", 1:10)) %>%
     tibble::rownames_to_column("patient_num")
 
+  print('save individual covariates')
   ind_covariates <- index_scores_elix %>%
     select(-elixhauser_score, -age_group)
 
   comorb_names_elix <- get_quan_elix_names()
 
+  print('construct icd tables')
   icd_tables <- get_tables(
     c("None", "Peripheral", "Central"),
     nstay_filtered,
@@ -832,6 +843,7 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
   )
 
   ## obfuscate comorbidity table
+  print('construct mapped comorbidity codes table')
   mapped_codes_table_obfus <- blur_it(mapped_codes_table, vars = 'n_patients', blur_abs, mask_thres)
   #mapped_codes_table_obfus <- mask_it(mapped_codes_table_obfus, var = 'n_patients', blur_abs, mask_thres)
 
@@ -844,6 +856,7 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
     select(-age_group)
 
   # save output to a list
+  print('save comorb_results')
   comorb_results <- list(icd_tables = icd_tables,
                          elix_mat = elix_mat,
                          elix_mat_cns = elix_mat_cns,
