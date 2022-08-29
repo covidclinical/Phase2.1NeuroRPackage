@@ -411,9 +411,7 @@ run_hosps <- function(both_pts,
                       neuro_patients,
                       neuro_icds,
                       comorb_adults,
-                      comorb_pediatrics,
-                      blur_abs
-                      mask_thres
+                      comorb_pediatrics
                       ) {
 
 
@@ -425,6 +423,7 @@ run_hosps <- function(both_pts,
   ##############################################################################
 
   ## process dataframes by pediatric or adult populations
+  print('process adult and pediatric specific demo_df')
   demo_df_adults <- demo_processed %>%
     filter(!patient_num %in% both_pts$patient_num,
            adult_ped == "adult") %>%
@@ -443,12 +442,13 @@ run_hosps <- function(both_pts,
     replace_na(list(neuro_type = "None")) %>%
     mutate(neuro_post = forcats::fct_relevel(neuro_type, neuro_types))
 
+  print('calculate unique comorb scores')
   scores_unique_adults <- comorb_adults$index_scores_elix %>%
-    right_join0(demo_df_adults, by = "patient_num") %>%
+    right_join(demo_df_adults, by = "patient_num") %>%
     left_join(comorb_adults$pca_covariates, by = "patient_num")
 
   scores_unique_pediatrics <- comorb_pediatrics$index_scores_elix %>%
-    right_join0(demo_df_pediatrics, by = "patient_num") %>%
+    right_join(demo_df_pediatrics, by = "patient_num") %>%
     left_join(comorb_pediatrics$pca_covariates, by = "patient_num")
 
   # for elixhauser

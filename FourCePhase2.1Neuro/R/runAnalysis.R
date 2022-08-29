@@ -438,9 +438,7 @@ runAnalysis <- function() {
       neuro_patients,
       neuro_icds,
       comorb_adults,
-      comorb_pediatrics,
-      blur_abs,
-      mask_thres
+      comorb_pediatrics
     )
   )
 
