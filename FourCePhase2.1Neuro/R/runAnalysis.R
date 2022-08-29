@@ -11,7 +11,7 @@
 #'
 runAnalysis <- function() {
 
-  sink("analysis_output.txt")
+  sink(paste0(getProjectOutputDirectory(), "/analysis_output.txt"))
 
   # set timer for analysis
   print('Set timer - this analysis will take some time to run')
@@ -166,7 +166,7 @@ runAnalysis <- function() {
   error = function(cond) {
     message("Original error message:")
     message(cond)
-    return(NULL) # return NA in case of error
+    #return(NULL) # return NA in case of error
   }
   )
 
