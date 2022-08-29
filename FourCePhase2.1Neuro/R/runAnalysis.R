@@ -516,6 +516,6 @@ runAnalysis <- function() {
     "\nPlease submit the result file by running submitAnalysis()\n"
   )
 
- # sink()
+  sink()
 
 }
