@@ -120,9 +120,11 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
     df <- df %>% filter(!time_to_severe == 0)
   }
 
+
+  # fit initial survival model in order to create our table counts with the survminer package
+  # here, we use a KM model to obtain sample size counts. We will use an additional model object to obtain results
   if (depend_var!='severe'){
 
-    # fit initial survival model in order to create our table counts with the survminer package
     tryCatch(
       {
         fit = survival::survfit(survival::Surv(time, delta)~neuro_post, data = df)
@@ -147,7 +149,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
         #survtable_output = list(survtable = survtable_obfs)
       },
       error = function(cond) {
-        message(paste("Error when regressing", depend_var))
+        message(paste("Error when evaluating", depend_var))
         message("Original error message:")
         message(cond)
         message("Skipping for now...")
@@ -164,7 +166,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
                                                 independ_vars)),data=df)[,-1] #[-1] removes intercept
         data=data.frame( cbind('time'=df$time,'delta'=df$delta,covariate) )
         fit=survival::coxph(as.formula(paste("survival::Surv(time,delta==1)", '~',
-                                   paste(colnames(data[,-(1:2)]),collapse='+'))),data=data)
+                                             paste(colnames(data[,-(1:2)]),collapse='+'))),data=data)
         newdata=NULL
         newdata[[1]]= data.frame(cbind(VTM(c(0,0),nrow(covariate)),covariate[,-(1:2)]) )
         newdata[[2]]= data.frame(cbind(VTM(c(1,0),nrow(covariate)),covariate[,-(1:2)]) )
@@ -188,12 +190,18 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
         names(survout)=c('none','pns','cns')
         names(surv)=c('none','pns','cns')
 
+        fit_summary <- fit %>% summary()
+
         # save survival model results to a list
         output=list('fit'=fit,
+                    'fit_summary' = fit_summary,
                     #'survout' = survout, # this is not helpful due to all of the patient level probs that were averaged
                     # also survout time to event is not taking the strata into account so it's not helpful
                     'surv_avg'= surv,
                     'survtable' = survtable_obfs)
+
+
+
 
           # remove patient level data
           if (!is.null(output)) {
@@ -203,6 +211,11 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
             output$fit$y <- NULL
             output$fit$nevent <- NULL
             output$fit$terms <- NULL
+
+            output$fit_summary$fail <- NULL
+            output$fit_summary$na.action <- NULL
+            output$fit_summary$n <- NULL
+            output$fit_summary$nevent <- NULL
 
             output$survout$none$n <- NULL
             output$survout$none$surv <- NULL
@@ -228,7 +241,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
           }
       },
       error = function(cond) {
-        message(paste("Error when regressing", depend_var))
+        message(paste("Error when evaluating", depend_var))
         message("Original error message:")
         message(cond)
         message('Skipping for now...')
@@ -340,7 +353,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
       output$severe_table_obfs = severe_table_obfs
     },
     error = function(cond) {
-      message(paste("Error when regressing", depend_var))
+      message(paste("Error when evaluating", depend_var))
       message("Original error message:")
       message(cond)
       message('Skipping for now...')
@@ -557,7 +570,7 @@ run_hosps <- function(both_pts,
         lapply(function(x) mutate(x, site = currSiteId))
       },
       error = function(cond) {
-        message("Original error message:")
+        #message("Original error message:")
         message(cond)
         return(NULL) # return NA in case of error
       }
@@ -742,7 +755,9 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
 
   print('add age_group to index_scores_elix')
   index_scores_elix <- index_scores_elix %>%
-    left_join(., demo_raw %>% select(patient_num, age_group), by = "patient_num")
+    right_join0(., demo_raw %>%
+                 filter(patient_num %in% df$patient_num) %>%
+                 select(patient_num, age_group), by = "patient_num")
 
   # filter by age
   print('filter index_scores_elix by age')

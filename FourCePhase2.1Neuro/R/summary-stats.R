@@ -244,3 +244,34 @@ list_table1 <- function(x, df, num_pats, comorb_names, group_var, ...){
     comorbidities = comorb_names,
     pat_col = x, ...)
 }
+
+calc_time_period <- function(df) {
+
+  start_date = as.Date('2020-01-01')
+  end_date = as.Date('2022-12-31')
+
+  timeline = seq(start_date, end_date, by = "3 months")
+
+ df_date =  tibble( date = seq( start_date, end_date, by = "1 day" ) ) %>%
+   mutate(time_period = case_when(
+     date >= timeline[1] & date < timeline[2] ~ timeline[1],
+     date >= timeline[2] & date < timeline[3] ~ timeline[2],
+     date >= timeline[3] & date < timeline[4] ~ timeline[3],
+     date >= timeline[4] & date < timeline[5] ~ timeline[4],
+     date >= timeline[5] & date < timeline[6] ~ timeline[5],
+     date >= timeline[6] & date < timeline[7] ~ timeline[6],
+     date >= timeline[7] & date < timeline[8] ~ timeline[7],
+     date >= timeline[8] & date < timeline[9] ~ timeline[8],
+     date >= timeline[9] & date < timeline[10] ~ timeline[9],
+     date >= timeline[10] & date < timeline[11] ~ timeline[10],
+     date >= timeline[11] & date < timeline[12] ~ timeline[11],
+     date >= timeline[12] ~ timeline[12]
+   )) %>%
+   rename('admission_date' = date)
+
+ df <- df %>%
+   left_join(., df_date, by = 'admission_date')
+
+    return(df)
+}
+

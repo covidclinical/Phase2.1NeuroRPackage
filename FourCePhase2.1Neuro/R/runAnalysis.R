@@ -85,6 +85,11 @@ runAnalysis <- function() {
       )
   }
 
+  # remove patients who were admitted after October 31, 2021 in order to avoid including patients with omicron variant.
+  demo_raw <- demo_raw %>%
+    filter(!admission_date >= '2021-11-01')
+
+
   # apply special params for MGB sites
   if (CurrSiteId == "MGB") {
     clin_raw <- clin_raw %>%
@@ -108,6 +113,9 @@ runAnalysis <- function() {
       last_discharge_date = pmin(death_date, last_discharge_date, na.rm = TRUE),
       time_to_last_discharge = subtract_days(admission_date, last_discharge_date)
     )
+
+  # add time_period to demo_raw
+  demo_raw <- calc_time_period(demo_raw)
 
   obs_raw <- obs_raw %>%
     filter(concept_type %in% c(paste0("DIAG-ICD",icd_version))) %>%
