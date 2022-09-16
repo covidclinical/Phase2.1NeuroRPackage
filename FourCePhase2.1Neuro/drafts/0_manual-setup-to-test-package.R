@@ -11,7 +11,7 @@ library(stringr)
 library(lubridate)
 library(broom)
 library("devtools")
-install_github("andland/logisticPCA")
+#install_github("andland/logisticPCA")
 library(logisticPCA)
 library(survival)
 library(survminer)
@@ -58,10 +58,10 @@ neuro_types <- c("None", "Peripheral", "Central")
 
 
 ###
-df = scores_unique_pediatrics
+df = scores_unique_adults
 include_race = TRUE
 tcut=30
-is_pediatric = TRUE
+is_pediatric = FALSE
 elix = "LPCA"
 survtable_interval = 10
-analysis = "Pediatrics_30_days_lpca"
+analysis = "Adults_30_days_lpca"
