@@ -892,7 +892,7 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
     comorb_names_elix,
     blur_abs,
     mask_thres,
-    group_var = 'neuro_post',
+    group_var = "concept_code",
     vars_to_obfs = c('sex',
                      'age_group',
                      'race',
@@ -900,7 +900,6 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
                      'Survival',
                      'readmitted',
                      'covid_discharged')
-    "concept_code"
   )
 
   ## obfuscate comorbidity table
