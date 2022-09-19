@@ -11,7 +11,7 @@
 #'
 runAnalysis <- function() {
 
-  #sink(paste0(getProjectOutputDirectory(), "/analysis_output.txt"))
+  sink("/analysis_output.txt")
 
   # set timer for analysis
   print('Set timer - this analysis will take some time to run')
