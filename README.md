@@ -5,6 +5,12 @@ Here we provide the steps for running the Phase2.1 Neuro R package. This package
 
 4CE analysts at each participating healthcare system can follow the below steps to locally run the Phase2.1 Neuro R Package on their healthcare system's data.
 
+## Getting started
+
+1. See the latest [release notes](https://github.com/covidclinical/Phase2.1NeuroRPackage/releases/tag/v2)
+
+2. Review & download the [data dictionary](https://github.com/covidclinical/Phase2.1NeuroRPackage/blob/master/Neuro2.1_PackageV2_DataDictionary.pdf)
+
 ## Install and run
 
 ### 1. Site information
