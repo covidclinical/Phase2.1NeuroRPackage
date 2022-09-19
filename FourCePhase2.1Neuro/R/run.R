@@ -476,7 +476,15 @@ run_hosps <- function(both_pts,
     scores_unique_adults,
     comorb_names_elix,
     blur_abs,
-    mask_thres
+    mask_thres,
+    group_var = 'neuro_post',
+    vars_to_obfs = c('sex',
+                     'age_group',
+                     'race',
+                     'Severity',
+                     'Survival',
+                     'readmitted',
+                     'covid_discharged')
   ) %>%
     lapply(function(x) mutate(x, site = currSiteId))
 
@@ -486,7 +494,15 @@ run_hosps <- function(both_pts,
     scores_unique_pediatrics,
     comorb_names_elix,
     blur_abs,
-    mask_thres
+    mask_thres,
+    group_var = 'neuro_post',
+    vars_to_obfs = c('sex',
+                     'age_group',
+                     'race',
+                     'Severity',
+                     'Survival',
+                     'readmitted',
+                     'covid_discharged')
   ) %>%
     lapply(function(x) mutate(x, site = currSiteId))
 
@@ -516,22 +532,38 @@ run_hosps <- function(both_pts,
     neuro_types = c("None", "Peripheral", "Central"),
     demo_df = left_join(demo_df_adults, comorb_adults_pivot %>%
                           select(patient_num, Comorbidity), by = 'patient_num'),
-    scores_unique = right_join0(comorb_adults_pivot, demo_df_adults, by = "patient_num"),
+    scores_unique = right_join0(comorb_adults_pivot, demo_df_adults, by = "patient_num") %>%
+      mutate(Comorbidity = if_else(Comorbidity=='0', "No Comorbidities", Comorbidity)),
     comorb_names_elix = comorb_names_elix,
     blur_abs = blur_abs,
     mask_thres = mask_thres,
-    group_var = "Comorbidity"
+    group_var = "Comorbidity",
+    vars_to_obfs = c('sex',
+                     'age_group',
+                     'race',
+                     'Severity',
+                     'Survival',
+                     'readmitted',
+                     'covid_discharged')
   )
 
   tableone_comorbidity_pediatrics <- get_tables(
     neuro_types = c("None", "Peripheral", "Central"),
     demo_df = left_join(demo_df_pediatrics, comorb_pediatrics_pivot %>%
                           select(patient_num, Comorbidity), by = 'patient_num'),
-    scores_unique = right_join0(comorb_pediatrics_pivot, demo_df_pediatrics, by = "patient_num"),
+    scores_unique = right_join0(comorb_pediatrics_pivot, demo_df_pediatrics, by = "patient_num") %>%
+      mutate(Comorbidity = if_else(Comorbidity=='0', "No Comorbidities", Comorbidity)) ,
     comorb_names_elix = comorb_names_elix,
     blur_abs = blur_abs,
     mask_thres = mask_thres,
-    group_var = "Comorbidity"
+    group_var = "Comorbidity",
+    vars_to_obfs = c('sex',
+                     'age_group',
+                     'race',
+                     'Severity',
+                     'Survival',
+                     'readmitted',
+                     'covid_discharged')
   )
 
   ## -------------------------------------------------------------------------
@@ -565,7 +597,15 @@ run_hosps <- function(both_pts,
           scores_unique,
           comorb_names_elix,
           blur_abs,
-          mask_thres
+          mask_thres,
+          group_var = 'neuro_post',
+          vars_to_obfs = c('sex',
+                           'age_group',
+                           'race',
+                           'Severity',
+                           'Survival',
+                           'readmitted',
+                           'covid_discharged')
         ) %>%
         lapply(function(x) mutate(x, site = currSiteId))
       },
@@ -852,6 +892,14 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
     comorb_names_elix,
     blur_abs,
     mask_thres,
+    group_var = 'neuro_post',
+    vars_to_obfs = c('sex',
+                     'age_group',
+                     'race',
+                     'Severity',
+                     'Survival',
+                     'readmitted',
+                     'covid_discharged')
     "concept_code"
   )
 
