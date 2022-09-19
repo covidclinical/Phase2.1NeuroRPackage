@@ -19,7 +19,7 @@ Before going into any coding, please confirm your site parameters on
 [this google
 sheet](https://docs.google.com/spreadsheets/d/1epcYNd_0jCUMktOHf8mz5v651zy1JALD6PgzobrGWDY/edit?usp=sharing).
 If anything is incorrect or if your site is not there, please notify
-@trang1618 via Slack to make correction.
+@meghutch via Slack to make correction.
 
 *Note*: `icd_version = 9` when the site’s ICD codes are primarily of
 version 9, and `include_race = FALSE` when site does not have race
