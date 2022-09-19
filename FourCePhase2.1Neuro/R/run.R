@@ -531,7 +531,8 @@ run_hosps <- function(both_pts,
   tableone_comorbidity_adults <- get_tables(
     neuro_types = c("None", "Peripheral", "Central"),
     demo_df = left_join(demo_df_adults, comorb_adults_pivot %>%
-                          select(patient_num, Comorbidity), by = 'patient_num'),
+                          select(patient_num, Comorbidity), by = 'patient_num') %>%
+      mutate(Comorbidity = if_else(is.na(Comorbidity), "No Comorbidities", Comorbidity)),
     scores_unique = right_join0(comorb_adults_pivot, demo_df_adults, by = "patient_num") %>%
       mutate(Comorbidity = if_else(Comorbidity=='0', "No Comorbidities", Comorbidity)),
     comorb_names_elix = comorb_names_elix,
@@ -550,7 +551,8 @@ run_hosps <- function(both_pts,
   tableone_comorbidity_pediatrics <- get_tables(
     neuro_types = c("None", "Peripheral", "Central"),
     demo_df = left_join(demo_df_pediatrics, comorb_pediatrics_pivot %>%
-                          select(patient_num, Comorbidity), by = 'patient_num'),
+                          select(patient_num, Comorbidity), by = 'patient_num') %>%
+      mutate(Comorbidity = if_else(is.na(Comorbidity), "No Comorbidities", Comorbidity)),
     scores_unique = right_join0(comorb_pediatrics_pivot, demo_df_pediatrics, by = "patient_num") %>%
       mutate(Comorbidity = if_else(Comorbidity=='0', "No Comorbidities", Comorbidity)) ,
     comorb_names_elix = comorb_names_elix,

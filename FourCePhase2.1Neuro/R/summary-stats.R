@@ -155,6 +155,9 @@ get_tables <- function(neuro_types,
   ) %>%
     bind_rows()
 
+    demo_df <- demo_df %>%
+      mutate('covid_discharged' = if_else(covid_discharged == 'Discharged', 1, 0))
+
   suppressWarnings(
   other_obfus_table <-
     bind_rows(
