@@ -211,6 +211,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
             output$fit$y <- NULL
             output$fit$nevent <- NULL
             output$fit$terms <- NULL
+            output$fit$condordance <- NULL
 
             output$fit_summary$fail <- NULL
             output$fit_summary$na.action <- NULL
