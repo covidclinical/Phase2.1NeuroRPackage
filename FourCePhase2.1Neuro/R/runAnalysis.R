@@ -115,7 +115,7 @@ runAnalysis <- function() {
     )
 
   # add time_period to demo_raw
-  demo_raw <- calc_time_period(demo_raw)
+  #demo_raw <- calc_time_period(demo_raw)
 
   obs_raw <- obs_raw %>%
     filter(concept_type %in% c(paste0("DIAG-ICD",icd_version))) %>%
@@ -134,6 +134,16 @@ runAnalysis <- function() {
     select(admission_date)
 
   site_last_admission_date <- format(site_last_admission_date$admission_date,"%m-%Y")
+
+  # eval whether a site only has clin_raw `in_hospital`==1
+  if(all(clin_raw$in_hospital == 1)) {
+    clin_raw <- fake_clin_raw %>%
+      group_by(patient_num) %>%
+      group_modify(count_sequences_hospitalisation) %>%
+      select(siteid, patient_num, days_since_admission, calendar_date, in_hospital,
+             severe, deceased)
+  }
+
 
   #####
   ## start analysis

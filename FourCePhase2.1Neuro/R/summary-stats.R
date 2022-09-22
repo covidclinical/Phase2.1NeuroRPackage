@@ -248,6 +248,26 @@ list_table1 <- function(x, df, num_pats, comorb_names, group_var, ...){
     pat_col = x, ...)
 }
 
+count_sequences_hospitalisation <- function(df, ...) {
+
+  date_df = data.frame(calendar_date = seq(min(df$calendar_date), max(df$calendar_date), by = "1 day"))
+
+  seq_hospitalisation_df <- data.frame(days_since_admission = seq(min(df$days_since_admission),
+                                                                  max(df$days_since_admission))
+  ) %>%
+    cbind(., date_df) %>%
+    left_join(., df, by = c("days_since_admission", "calendar_date")) %>%
+    arrange(days_since_admission) %>%
+    replace_na(list(in_hospital = 0)) %>%
+    #fill(patient_num, .direction = "downup") %>%
+    fill(siteid, .direction = "downup") %>%
+    fill(severe, .direction = "down") %>%
+    fill(deceased, .direction = "down")
+
+  return(seq_hospitalisation_df)
+}
+
+
 calc_time_period <- function(df) {
 
   start_date = as.Date('2020-01-01')
