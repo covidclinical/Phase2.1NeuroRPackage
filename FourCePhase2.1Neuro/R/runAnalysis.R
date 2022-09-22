@@ -137,7 +137,7 @@ runAnalysis <- function() {
 
   # eval whether a site only has clin_raw `in_hospital`==1
   if(all(clin_raw$in_hospital == 1)) {
-    clin_raw <- fake_clin_raw %>%
+    clin_raw <- clin_raw %>%
       group_by(patient_num) %>%
       group_modify(count_sequences_hospitalisation) %>%
       select(siteid, patient_num, days_since_admission, calendar_date, in_hospital,
