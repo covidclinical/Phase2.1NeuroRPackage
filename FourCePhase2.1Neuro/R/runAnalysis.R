@@ -414,20 +414,19 @@ runAnalysis <- function() {
 
 
   # process comorbidity data for survival analysis covariates and comorobidity/neuro risk analysis
-  if(currSiteId != c("BCH", "GOSH")) {
-    print("processing adult comorbidities")
-    tryCatch({
-      comorb_adults <- process_comorb_data(adult_obs, demo_raw, nstay_df, neuro_patients, icd_version, is_pediatric = FALSE, blur_abs, mask_thres)
-  },
+  print("processing adult comorbidities")
+  tryCatch({
+    comorb_adults <- process_comorb_data(adult_obs, demo_raw, nstay_df, neuro_patients, icd_version, is_pediatric = FALSE, blur_abs, mask_thres)
+    },
   error = function(cond) {
     message("Original error message:")
     message(cond)
     return(NULL) # return NA in case of error
   }
     )
-    }
+    # }
+  print("processing pediatric comorbidities")
   tryCatch({
-    print("processing pediatric comorbidities")
     comorb_pediatrics <- process_comorb_data(ped_obs, demo_raw, nstay_df, neuro_patients, icd_version, is_pediatric = TRUE, blur_abs, mask_thres)
   },
   error = function(cond) {
@@ -436,6 +435,16 @@ runAnalysis <- function() {
     return(NULL) # return NA in case of error
   }
   )
+
+  # manually add empty dataframes if they do not exist due to lack of pediatric/adult patients
+  # this will prevent future downstream errors with consolidating the list of results
+    if(!exists('comorb_adults')) {
+      comorb_adults <- data.frame()
+    }
+
+    if(!exists('comorb_pediatrics')) {
+      comorb_pediatrics <- data.frame()
+    }
 
   # perform the run_hosps to compute our primary analysis and save all results to a list object
   results <- list(
