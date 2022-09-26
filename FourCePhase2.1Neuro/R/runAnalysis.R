@@ -44,10 +44,11 @@ runAnalysis <- function(is_docker = TRUE, currSiteId=NULL, data_dir= "/4ceData/I
     FourCePhase2.1Data::runQC(currSiteId)
   } else {
     currSiteId = currSiteId
+    CurrSiteId <- toupper(currSiteId)
+    print('run QC')
     FourCePhase2.1Data::runQC_nodocker(currSiteId, dir.input = data_dir)
   }
 
-  CurrSiteId <- toupper(currSiteId)
   site_specs <- site_params %>%
     dplyr::filter(tolower(siteid) == tolower(currSiteId))
 
