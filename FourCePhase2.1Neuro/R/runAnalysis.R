@@ -40,12 +40,12 @@ runAnalysis <- function(is_docker = TRUE, currSiteId=NULL, data_dir= "/4ceData/I
     data_dir <- FourCePhase2.1Data::getInputDataDirectoryName()
     currSiteId <- FourCePhase2.1Data::getSiteId()
     CurrSiteId <- toupper(currSiteId)
-    print('run QC')
+    print('runQC_docker version')
     FourCePhase2.1Data::runQC(currSiteId)
   } else {
     currSiteId = currSiteId
     CurrSiteId <- toupper(currSiteId)
-    print('run QC')
+    print('runQC_nodocker version')
     FourCePhase2.1Data::runQC_nodocker(currSiteId, dir.input = data_dir)
   }
 
