@@ -69,13 +69,14 @@ demo_stats <- function(var, df, group_var, ...){
     group_by(!!svar) %>%
     count(!!group_var, name = 'n_var') %>%
     as.data.frame() %>%
-    blur_it('n_var', ...) %>%
+    blur_it('n_var', blur_abs, mask_thres) %>%
     group_by(!!group_var) %>%
     mutate(both_neuro = sum(n_var)) %>%
     ungroup() %>%
     mutate(prop = n_var/both_neuro,
            pres = concat(n_var, n_var/both_neuro)) %>%
-    pivot_wider(- c(n_var, both_neuro), names_from = !!group_var,
+    pivot_wider(id_cols = - c(both_neuro),
+                names_from = !!group_var,
                 values_from = c(n_var, prop, pres),
                 values_fill = list(n_var = 0, prop = 0, pres = '0 (0%)')) %>%
     mutate(variable = paste(var, !!svar, sep = '.')) %>%
@@ -185,27 +186,6 @@ get_tables <- function(neuro_types,
       )
     )
   )
-  # elix_obfus_table1 <-
-  #   Reduce(
-  #     function(...)
-  #       left_join(..., by = c("Comorbidity", "Abbreviation")),
-  #     lapply(
-  #       neuro_types,
-  #       list_table1,
-  #       df = scores_unique,
-  #       num_pats = total_patients,
-  #       comorb_names = comorb_names_elix,
-  #       group_var = group_var,
-  #       blur_abs = blur_abs,
-  #       mask_thres = mask_thres
-  #     )
-  #   ) %>%
-  #   mutate(
-  #     n_Total = rowSums(select(., starts_with('n_'))),
-  #     prop_Total = n_Total / total_patients
-  #   ) %>%
-  #   arrange(desc(n_Total))
-
   list(
     demo_table = demo_obfus_table,
     other_obfus_table = other_obfus_table

@@ -424,7 +424,6 @@ runAnalysis <- function() {
     return(NULL) # return NA in case of error
   }
     )
-    # }
   print("processing pediatric comorbidities")
   tryCatch({
     comorb_pediatrics <- process_comorb_data(ped_obs, demo_raw, nstay_df, neuro_patients, icd_version, is_pediatric = TRUE, blur_abs, mask_thres)
