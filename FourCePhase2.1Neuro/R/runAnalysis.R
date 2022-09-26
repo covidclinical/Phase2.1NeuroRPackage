@@ -9,7 +9,7 @@
 #' @importFrom forcats fct_recode fct_reorder
 #' @importFrom tidyr pivot_longer pivot_wider replace_na
 #'
-runAnalysis <- function(is_docker = TRUE, currSiteId=NULL, data_dir= NULL) {
+runAnalysis <- function(is_docker = TRUE, currSiteId=NULL, data_dir= "/4ceData/Input", output_dir=NULL) {
 
   #sink("analysis_output.txt")
 
@@ -527,29 +527,41 @@ runAnalysis <- function(is_docker = TRUE, currSiteId=NULL, data_dir= NULL) {
   site_results <- paste0(CurrSiteId, "_results")
   assign(site_results, results)
 
-  # save results
-  save(
-    list = site_results,
-    file = file.path(
-      getProjectOutputDirectory(),
-      paste0(CurrSiteId, "_results.rda")
+  if(is_docker==TRUE) {
+    # save results
+    save(
+      list = site_results,
+      file = file.path(
+        getProjectOutputDirectory(),
+        paste0(CurrSiteId, "_results.rda")
+      )
     )
-  )
-  save(
-    list = site_results,
-    file = file.path(
-      FourCePhase2.1Data::get4ceRootDirectoryName(),
-      paste0(CurrSiteId, "_results.rda")
+    save(
+      list = site_results,
+      file = file.path(
+        FourCePhase2.1Data::get4ceRootDirectoryName(),
+        paste0(CurrSiteId, "_results.rda")
+      )
     )
-  )
-  cat(
-    "Result is saved in",
-    file.path(
-      getProjectOutputDirectory(),
-      paste0(CurrSiteId, "_results.rda")
-    ),
-    "\nPlease submit the result file by running submitAnalysis()\n"
-  )
+    cat(
+      "Result is saved in",
+      file.path(
+        getProjectOutputDirectory(),
+        paste0(CurrSiteId, "_results.rda")
+      ),
+      "\nPlease submit the result file by running submitAnalysis()\n"
+    )
+  } else {
+    cat("Saving results...")
+    save(
+      list = site_results,
+      file = file.path(
+        output_dir,
+        paste0(CurrSiteId, "_results.rda")
+      )
+    )
+    cat('analysis complete')
+  }
 
   sink()
 
