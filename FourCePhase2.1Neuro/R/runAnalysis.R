@@ -30,12 +30,21 @@ runAnalysis <- function(is_docker = TRUE, currSiteId=NULL, data_dir= "/4ceData/I
   ## get the site identifier assocaited with the files stored in the /4ceData/Input directory that
   ## is mounted to the container
 
+  ## run the quality control
+  remotes::install_github(
+    "https://github.com/covidclinical/Phase2.1DataRPackage",
+    subdir = "FourCePhase2.1Data", upgrade = FALSE
+  )
+
   if(is_docker == TRUE) {
     data_dir <- FourCePhase2.1Data::getInputDataDirectoryName()
     currSiteId <- FourCePhase2.1Data::getSiteId()
+    CurrSiteId <- toupper(currSiteId)
+    print('run QC')
+    FourCePhase2.1Data::runQC(currSiteId)
   } else {
-    data_dir = data_dir
     currSiteId = currSiteId
+    FourCePhase2.1Data::runQC_nodocker(currSiteId, dir.input = data_dir)
   }
 
   CurrSiteId <- toupper(currSiteId)
@@ -49,14 +58,7 @@ runAnalysis <- function(is_docker = TRUE, currSiteId=NULL, data_dir= "/4ceData/I
   icd_version <- site_specs$icd_version
   include_race <- site_specs$include_race
 
-  ## run the quality control
-  print('run QC')
-  remotes::install_github(
-    "https://github.com/covidclinical/Phase2.1DataRPackage",
-    subdir = "FourCePhase2.1Data", upgrade = FALSE
-  )
 
-  FourCePhase2.1Data::runQC(currSiteId)
 
   ## load and apply pre-processing of 4CE Phase2.1 files
   # apply special parameters for VA sites
