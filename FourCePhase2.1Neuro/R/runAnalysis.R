@@ -9,7 +9,7 @@
 #' @importFrom forcats fct_recode fct_reorder
 #' @importFrom tidyr pivot_longer pivot_wider replace_na
 #'
-runAnalysis <- function() {
+runAnalysis <- function(data_dir = FourCePhase2.1Data::getInputDataDirectoryName()) {
 
   #sink("analysis_output.txt")
 
