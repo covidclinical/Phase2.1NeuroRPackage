@@ -59,7 +59,7 @@ continuous_stats <- function(df, cont_var, name, group_var,...) {
     pivot_wider(names_from = !!group_var, values_from = value)
 }
 
-demo_stats <- function(var, df, group_var, ...){
+demo_stats <- function(var, df, group_var, blur_abs, mask_thres, ...){
 
   set.seed(446)
 
@@ -147,8 +147,8 @@ get_tables <- function(neuro_types,
   total_patients <- length(unique(demo_df$patient_num))
 
     demo_obfus_table <- lapply(
-    vars_to_obfs,
-    demo_stats,
+    X = vars_to_obfs,
+    FUN = demo_stats,
     df = demo_df,
     blur_abs = blur_abs,
     mask_thres = mask_thres,

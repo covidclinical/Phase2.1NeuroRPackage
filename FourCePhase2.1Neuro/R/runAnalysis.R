@@ -59,8 +59,6 @@ runAnalysis <- function(is_docker = TRUE, currSiteId=NULL, data_dir= "/4ceData/I
   icd_version <- site_specs$icd_version
   include_race <- site_specs$include_race
 
-
-
   ## load and apply pre-processing of 4CE Phase2.1 files
   # apply special parameters for VA sites
   VA_site <- FALSE
