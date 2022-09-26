@@ -42,6 +42,7 @@ runAnalysis <- function(data_dir = FourCePhase2.1Data::getInputDataDirectoryName
   include_race <- site_specs$include_race
 
   ## run the quality control
+  print('run QC')
   remotes::install_github(
     "https://github.com/covidclinical/Phase2.1DataRPackage",
     subdir = "FourCePhase2.1Data", upgrade = FALSE
