@@ -9,7 +9,7 @@
 #' @importFrom forcats fct_recode fct_reorder
 #' @importFrom tidyr pivot_longer pivot_wider replace_na
 #'
-runAnalysis <- function(data_dir = FourCePhase2.1Data::getInputDataDirectoryName()) {
+runAnalysis <- function(is_docker = TRUE, currSiteId=NULL, data_dir= NULL) {
 
   #sink("analysis_output.txt")
 
@@ -29,11 +29,19 @@ runAnalysis <- function(data_dir = FourCePhase2.1Data::getInputDataDirectoryName
 
   ## get the site identifier assocaited with the files stored in the /4ceData/Input directory that
   ## is mounted to the container
-  data_dir <- FourCePhase2.1Data::getInputDataDirectoryName()
-  currSiteId <- FourCePhase2.1Data::getSiteId()
+
+  if(is_docker == TRUE) {
+    data_dir <- FourCePhase2.1Data::getInputDataDirectoryName()
+    currSiteId <- FourCePhase2.1Data::getSiteId()
+  } else {
+    data_dir = data_dir
+    currSiteId = currSiteId
+  }
+
   CurrSiteId <- toupper(currSiteId)
   site_specs <- site_params %>%
     dplyr::filter(tolower(siteid) == tolower(currSiteId))
+
 
   # specify obfuscation, blurring, and site specific params
   mask_thres <- site_specs$mask_thres
