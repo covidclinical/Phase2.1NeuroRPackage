@@ -522,7 +522,7 @@ runAnalysis <- function(is_docker = TRUE, currSiteId=NULL, data_dir= "/4ceData/I
   print(paste('The analysis completed in', time.analysis))
 
   # remove unneccessary R objects
-  rm(list = setdiff(ls(), c("CurrSiteId", "results", "is_docker")))
+  rm(list = setdiff(ls(), c("CurrSiteId", "results", "is_docker", "output_dir")))
 
   # append siteId to results file
   site_results <- paste0(CurrSiteId, "_results")
