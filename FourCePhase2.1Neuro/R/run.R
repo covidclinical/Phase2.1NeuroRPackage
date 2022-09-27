@@ -440,6 +440,7 @@ run_hosps <- function(both_pts,
 
   ## process dataframes by pediatric or adult populations
   print('process adult and pediatric specific demo_df')
+
   demo_df_adults <- demo_processed %>%
     filter(!patient_num %in% both_pts$patient_num,
            adult_ped == "adult") %>%
@@ -448,6 +449,15 @@ run_hosps <- function(both_pts,
     ) %>%
     replace_na(list(neuro_type = "None")) %>%
     mutate(neuro_post = forcats::fct_relevel(neuro_type, neuro_types))
+
+  if(nrow(demo_df_adults)>0) {
+
+    print('demo_df_adults is > 0')
+
+  } else {
+
+    print('no adult patients')
+    }
 
   demo_df_pediatrics <- demo_processed %>%
     filter(!patient_num %in% both_pts$patient_num,
@@ -458,18 +468,38 @@ run_hosps <- function(both_pts,
     replace_na(list(neuro_type = "None")) %>%
     mutate(neuro_post = forcats::fct_relevel(neuro_type, neuro_types))
 
+  if(nrow(demo_df_pediatrics)>0) {
+
+    print('demo_df_pediatrics is > 0')
+
+  } else {
+
+    print('no pediatric patients')
+  }
+
   # for elixhauser
   comorb_names_elix <- get_quan_elix_names()
+  print('evaluate get_quan_elix_names')
+  print(head(comorb_names_elix))
+  print(str(comorb_names_elix))
 
-  print('calculate unique comorb scores')
+  print('calculate unique adult comorb scores')
 
   if(nrow(demo_df_adults) > 0) {
+
+    print('print colnames(comorb_adults$index_scores_elix) to make sure these are characters, not numbers')
+    print(colnames(comorb_adults$index_scores_elix ))
 
     scores_unique_adults <- comorb_adults$index_scores_elix %>%
       right_join0(., demo_df_adults, by = "patient_num") %>%
       left_join(comorb_adults$pca_covariates, by = "patient_num")
 
+    print('print colnames(scores_unique_adults) to make sure comorbidities are characters, not numbers')
+    print(colnames(scores_unique_adults))
+
     ## create demographic tables
+    print('construct adult neurologic demographics table')
+
     tableone_adults <- get_tables(
       neuro_types = neuro_types,
       demo_df = demo_df_adults,
@@ -489,6 +519,8 @@ run_hosps <- function(both_pts,
       lapply(function(x) mutate(x, site = currSiteId))
 
     # pivot comorbidity tables
+    print('pivot adult comorbidity table')
+
     comorb_adults_pivot <- comorb_adults$index_scores_elix %>%
       select(-elixhauser_score) %>%
       pivot_longer(!patient_num, names_to = "Comorbidity") %>%
@@ -499,6 +531,8 @@ run_hosps <- function(both_pts,
       select(-value)
 
     # return demographic tables
+    print('construct adult comorbidity demographcis table')
+
     tableone_comorbidity_adults <- get_tables(
       neuro_types = c("None", "Peripheral", "Central"),
       demo_df = left_join(demo_df_adults, comorb_adults_pivot %>%
@@ -531,11 +565,22 @@ run_hosps <- function(both_pts,
 
   if(nrow(demo_df_pediatrics) > 0) {
 
+    print('calculate unique pediatric comorbid scores')
+
+    print('print colnames(comorb_pediatrics$index_scores_elix) to make sure these are characters, not numbers')
+    print(colnames(comorb_pediatrics$index_scores_elix ))
+
   scores_unique_pediatrics <- comorb_pediatrics$index_scores_elix %>%
     right_join0(., demo_df_pediatrics, by = "patient_num") %>%
     left_join(comorb_pediatrics$pca_covariates, by = "patient_num")
 
+  print('print colnames(scores_unique_pediatrics) to make sure comorbidities are characters, not numbers')
+  print(colnames(scores_unique_pediatrics))
+
   # create demographic tables
+  print('construct pediatric neurologic demographics table')
+
+
   tableone_pediatrics <- get_tables(
     neuro_types = neuro_types,
     demo_df = demo_df_pediatrics,
@@ -555,6 +600,8 @@ run_hosps <- function(both_pts,
     lapply(function(x) mutate(x, site = currSiteId))
 
   # pivot comorbidity tables
+  print('pivot pediatric comorbidity table')
+
   comorb_pediatrics_pivot <- comorb_pediatrics$index_scores_elix %>%
     select(-elixhauser_score) %>%
     pivot_longer(!patient_num, names_to = "Comorbidity") %>%
@@ -565,6 +612,8 @@ run_hosps <- function(both_pts,
     select(-value)
 
   # return demographic tables
+  print('construct pediatric comorbidity demographcis table')
+
   tableone_comorbidity_pediatrics <- get_tables(
     neuro_types = c("None", "Peripheral", "Central"),
     demo_df = left_join(demo_df_pediatrics, comorb_pediatrics_pivot %>%
@@ -648,6 +697,8 @@ run_hosps <- function(both_pts,
   }
 
   # create demographic tables of excluded patients
+  print('remove excluded adult patients as applicable')
+
   if(nrow(demo_df_adults) > 0) {
     severe_adm_adults <- surv_exclude_pts(demo_df_adults, "time_to_severe", index_scores_elix = comorb_adults$index_scores_elix, pca_covariates = comorb_adults$pca_covariates)
     death_adm_adults <- surv_exclude_pts(demo_df_adults, "time_to_death", index_scores_elix = comorb_adults$index_scores_elix, pca_covariates = comorb_adults$pca_covariates)
@@ -658,6 +709,7 @@ run_hosps <- function(both_pts,
     first_adm_adults <- data.frame()
   }
 
+  print('remove excluded pediatric patients as applicable')
   if(nrow(demo_df_pediatrics) > 0) {
     severe_adm_pediatrics <- surv_exclude_pts(demo_df_pediatrics, "time_to_severe", index_scores_elix = comorb_pediatrics$index_scores_elix, pca_covariates = comorb_pediatrics$pca_covariates)
     death_adm_pediatrics <- surv_exclude_pts(demo_df_pediatrics, "time_to_death", index_scores_elix = comorb_pediatrics$index_scores_elix, pca_covariates = comorb_pediatrics$pca_covariates)
@@ -688,6 +740,7 @@ run_hosps <- function(both_pts,
   # Adults
   # only run the adult analysis if the site is not a pediatric only hospital
   if(nrow(demo_df_adults) > 0) {
+    print('begin adult survival analyses')
     tryCatch({
       # LPCA
       surv_results_adults_lpca_30 <- run_coxregressions(analysis = "Adults_30_days_lpca", df = scores_unique_adults, include_race, tcut = 30, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = FALSE, elix = "LPCA", survtable_interval = 10)
@@ -721,6 +774,7 @@ run_hosps <- function(both_pts,
   }
   # Pediatric
     if(nrow(demo_df_pediatrics) > 0) {
+      print('begin pediatric survival analyses')
       tryCatch({
         # LPCA
         surv_results_pediatrics_lpca_30 <- run_coxregressions(analysis = "Pediatrics_30_days_lpca", df = scores_unique_pediatrics, include_race, tcut = 30, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE, elix = "LPCA", survtable_interval = 10)
