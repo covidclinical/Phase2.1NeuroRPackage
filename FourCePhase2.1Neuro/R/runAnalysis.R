@@ -564,6 +564,6 @@ runAnalysis <- function(is_docker = TRUE, currSiteId=NULL, data_dir= "/4ceData/I
     cat('analysis complete')
   }
 
-  sink()
+  #sink()
 
 }
