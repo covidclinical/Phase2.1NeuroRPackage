@@ -193,7 +193,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
         fit_summary <- fit %>% summary()
 
         # save survival model results to a list
-        output=list('fit'=fit,
+        output=list(#'fit'=fit,
                     'fit_summary' = fit_summary,
                     #'survout' = survout, # this is not helpful due to all of the patient level probs that were averaged
                     # also survout time to event is not taking the strata into account so it's not helpful
@@ -205,18 +205,22 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
 
           # remove patient level data
           if (!is.null(output)) {
-            output$fit$linear.predictors <- NULL
-            output$fit$residuals <- NULL
-            output$fit$n <- NULL
-            output$fit$y <- NULL
-            output$fit$nevent <- NULL
-            output$fit$terms <- NULL
-            output$fit$condordance <- NULL
+            # output$fit$linear.predictors <- NULL
+            # output$fit$residuals <- NULL
+            # output$fit$n <- NULL
+            # output$fit$y <- NULL
+            # output$fit$nevent <- NULL
+            # output$fit$terms <- NULL
+            # output$fit$concordance <- NULL
+            # output$fit$call <- NULL
+            # output$fit$term <- NULL
+            # output$fit$formula <- NULL
 
             output$fit_summary$fail <- NULL
             output$fit_summary$na.action <- NULL
             output$fit_summary$n <- NULL
             output$fit_summary$nevent <- NULL
+            output$fit_summary$call <- NULL
 
             output$survout$none$n <- NULL
             output$survout$none$surv <- NULL
