@@ -195,13 +195,10 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
         # save survival model results to a list
         output=list(#'fit'=fit,
                     'fit_summary' = fit_summary,
-                    #'survout' = survout, # this is not helpful due to all of the patient level probs that were averaged
+                    'survout' = survout, # this is not helpful due to all of the patient level probs that were averaged
                     # also survout time to event is not taking the strata into account so it's not helpful
                     'surv_avg'= surv,
                     'survtable' = survtable_obfs)
-
-
-
 
           # remove patient level data
           if (!is.null(output)) {
@@ -223,25 +220,22 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
             output$fit_summary$call <- NULL
 
             output$survout$none$n <- NULL
-            output$survout$none$surv <- NULL
-            output$survout$none$cumhaz <- NULL
-            output$survout$none$std.err <- NULL
-            output$survout$none$lower <- NULL
-            output$survout$none$upper <- NULL
+            output$survout$none$n.risk <- NULL
+            output$survout$none$n.event <- NULL
+            output$survout$none$n.censor <- NULL
+            output$survout$none$call <- NULL
 
             output$survout$cns$n <- NULL
-            output$survout$cns$surv <- NULL
-            output$survout$cns$cumhaz <- NULL
-            output$survout$cns$std.err <- NULL
-            output$survout$cns$lower <- NULL
-            output$survout$cns$upper <- NULL
+            output$survout$cns$n.risk <- NULL
+            output$survout$cns$n.event <- NULL
+            output$survout$cns$n.censor <- NULL
+            output$survout$cns$call <- NULL
 
             output$survout$pns$n <- NULL
-            output$survout$pns$surv <- NULL
-            output$survout$pns$cumhaz <- NULL
-            output$survout$pns$std.err <- NULL
-            output$survout$pns$lower <- NULL
-            output$survout$pns$upper <- NULL
+            output$survout$pns$n.risk <- NULL
+            output$survout$pns$n.event <- NULL
+            output$survout$pns$n.censor <- NULL
+            output$survout$pns$call <- NULL
 
           }
       },
