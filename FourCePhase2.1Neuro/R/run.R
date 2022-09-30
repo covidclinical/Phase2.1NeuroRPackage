@@ -171,16 +171,20 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
         newdata[[1]]= data.frame(cbind(VTM(c(0,0),nrow(covariate)),covariate[,-(1:2)]) )
         newdata[[2]]= data.frame(cbind(VTM(c(1,0),nrow(covariate)),covariate[,-(1:2)]) )
         newdata[[3]]= data.frame(cbind(VTM(c(0,1),nrow(covariate)),covariate[,-(1:2)]) )
-        survout=NULL;surv=NULL
+        survout=NULL;surv=NULL;std.err=NULL
+
+
+
         for (i in 1:length(newdata)){
           colnames(newdata[[i]])=colnames(covariate)
           survout[[i]]=survival::survfit(fit,newdata=newdata[[i]] )
           surv[[i]]=apply(survout[[i]]$surv, 1, mean)
+          std.err[[i]]=apply(survout[[i]]$std.err, 1, mean)
 
           # to print plot
-          #t=survout[[i]]$time
-          #plot(t,surv[[i]],col=i,type='l',ylim=c(0,1))
-          #par(new=T)
+          t=survout[[i]]$time
+          plot(t,surv[[i]],col=i,type='l',ylim=c(0,1))
+          par(new=T)
         }
         # plot legend
         #legend('bottomleft',c('None','Peripheral','Central'),lwd=rep(1,length(newdata)),
@@ -189,15 +193,18 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
         # name output
         names(survout)=c('none','pns','cns')
         names(surv)=c('none','pns','cns')
+        names(std.err)=c('none','pns','cns')
 
         fit_summary <- fit %>% summary()
+
 
         # save survival model results to a list
         output=list(#'fit'=fit,
                     'fit_summary' = fit_summary,
-                    'survout' = survout, # this is not helpful due to all of the patient level probs that were averaged
+                    #'survout' = survout, # this is not helpful due to all of the patient level probs that were averaged
                     # also survout time to event is not taking the strata into account so it's not helpful
                     'surv_avg'= surv,
+                    'std.err' = std.err,
                     'survtable' = survtable_obfs)
 
           # remove patient level data
@@ -219,23 +226,23 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
             output$fit_summary$nevent <- NULL
             output$fit_summary$call <- NULL
 
-            output$survout$none$n <- NULL
-            output$survout$none$n.risk <- NULL
-            output$survout$none$n.event <- NULL
-            output$survout$none$n.censor <- NULL
-            output$survout$none$call <- NULL
-
-            output$survout$cns$n <- NULL
-            output$survout$cns$n.risk <- NULL
-            output$survout$cns$n.event <- NULL
-            output$survout$cns$n.censor <- NULL
-            output$survout$cns$call <- NULL
-
-            output$survout$pns$n <- NULL
-            output$survout$pns$n.risk <- NULL
-            output$survout$pns$n.event <- NULL
-            output$survout$pns$n.censor <- NULL
-            output$survout$pns$call <- NULL
+            # output$survout$none$n <- NULL
+            # output$survout$none$n.risk <- NULL
+            # output$survout$none$n.event <- NULL
+            # output$survout$none$n.censor <- NULL
+            # output$survout$none$call <- NULL
+            #
+            # output$survout$cns$n <- NULL
+            # output$survout$cns$n.risk <- NULL
+            # output$survout$cns$n.event <- NULL
+            # output$survout$cns$n.censor <- NULL
+            # output$survout$cns$call <- NULL
+            #
+            # output$survout$pns$n <- NULL
+            # output$survout$pns$n.risk <- NULL
+            # output$survout$pns$n.event <- NULL
+            # output$survout$pns$n.censor <- NULL
+            # output$survout$pns$call <- NULL
 
           }
       },
