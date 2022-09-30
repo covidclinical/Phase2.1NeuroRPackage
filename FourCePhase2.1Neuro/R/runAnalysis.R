@@ -9,7 +9,7 @@
 #' @importFrom forcats fct_recode fct_reorder
 #' @importFrom tidyr pivot_longer pivot_wider replace_na
 #'
-runAnalysis <- function(is_docker = TRUE, currSiteId=NULL, data_dir= "/4ceData/Input", output_dir=NULL) {
+runAnalysis <- function(is_docker = TRUE, test = TRUE, currSiteId=NULL, data_dir= "/4ceData/Input", output_dir=NULL) {
 
   #sink("analysis_output.txt")
 
@@ -99,6 +99,9 @@ runAnalysis <- function(is_docker = TRUE, currSiteId=NULL, data_dir= "/4ceData/I
   demo_raw <- demo_raw %>%
     filter(!admission_date >= '2021-11-01')
 
+  if(test==TRUE) {
+    demo_raw = head(demo_raw, 1000)
+  }
 
   # apply special params for MGB sites
   if (CurrSiteId == "MGB") {
