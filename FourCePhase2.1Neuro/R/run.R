@@ -125,6 +125,8 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
   # here, we use a KM model to obtain sample size counts. We will use an additional model object to obtain results
   if (depend_var!='severe'){
 
+    print('create survtable obj')
+
     tryCatch(
       {
         fit = survival::survfit(survival::Surv(time, delta)~neuro_post, data = df)
@@ -145,6 +147,12 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
         survtable_obfs <- blur_it(survtable[['data']] %>%
                                     select(strata, time, n.risk, cum.n.event, cum.n.censor, strata_size),
                                   vars = c("n.risk", "cum.n.event", "cum.n.censor", "strata_size"), blur_abs, mask_thres)
+
+
+        if(!exists('survtable_obfs')) {
+          print('create empty survtable_obfs')
+          survtable_obfs <- data.frame()
+        }
 
         #survtable_output = list(survtable = survtable_obfs)
       },

@@ -9,7 +9,7 @@
 #' @importFrom forcats fct_recode fct_reorder
 #' @importFrom tidyr pivot_longer pivot_wider replace_na
 #'
-runAnalysis <- function(is_docker = TRUE, test = TRUE, currSiteId=NULL, data_dir= "/4ceData/Input", output_dir=NULL) {
+runAnalysis <- function(is_docker = TRUE, test = FALSE, currSiteId=NULL, data_dir= "/4ceData/Input", output_dir=NULL) {
 
   #sink("analysis_output.txt")
 
