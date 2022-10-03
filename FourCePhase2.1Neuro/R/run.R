@@ -171,7 +171,19 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
         newdata[[1]]= data.frame(cbind(VTM(c(0,0),nrow(covariate)),covariate[,-(1:2)]) )
         newdata[[2]]= data.frame(cbind(VTM(c(1,0),nrow(covariate)),covariate[,-(1:2)]) )
         newdata[[3]]= data.frame(cbind(VTM(c(0,1),nrow(covariate)),covariate[,-(1:2)]) )
-        survout=NULL;surv=NULL;std.err=NULL;time=NULL
+        survout=NULL;surv=NULL;std.err=NULL;std.err.sqrt=NULL;time=NULL
+
+        calc_stderr <- function(stderr) {
+
+          n = length(stderr)
+
+          sqr <- stderr^2
+          sum_sqr <- sum(sqr)
+          std.sqrt = sqrt(sum_sqr)/n
+
+          return(std.sqrt)
+
+        }
 
         for (i in 1:length(newdata)){
           colnames(newdata[[i]])=colnames(covariate)
@@ -179,6 +191,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
           time[[i]] <- survout[[i]]$time
           surv[[i]]=apply(survout[[i]]$surv, 1, mean)
           std.err[[i]]=apply(survout[[i]]$std.err, 1, mean)
+          std.err.sqrt[[i]]=apply(survout[[i]]$std.err, 1, calc_stderr)
 
           # to print plot
           #t=survout[[i]]$time
@@ -194,12 +207,14 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
         names(surv)=c('none','pns','cns')
         names(std.err)=c('none','pns','cns')
         names(time)=c('none','pns','cns')
+        names(std.err.sqrt)=c('none','pns','cns')
 
         fit_summary <- fit %>% summary()
 
         surv_avg <- list(time = time,
                          surv = surv,
-                         std.err = std.err)
+                         std.err = std.err,
+                         std.err.sqrt = std.err.sqrt)
 
         # save survival model results to a list
         output=list(#'fit'=fit,
@@ -818,8 +833,7 @@ run_hosps <- function(both_pts,
   tryCatch({
 
   tableone_results <- list(tableone_adults = tableone_adults,
-                           tableone_pediatrics = tableone_pediatrics
-                        )
+                           tableone_pediatrics = tableone_pediatrics)
 
   tableone_comorbidity_results <- list(tableone_comorbidity_adults = tableone_comorbidity_adults,
                                        tableone_comorbidity_pediatrics = tableone_comorbidity_pediatrics
