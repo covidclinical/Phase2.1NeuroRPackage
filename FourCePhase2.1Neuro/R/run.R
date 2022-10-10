@@ -517,12 +517,18 @@ run_hosps <- function(both_pts,
 
   if(nrow(demo_df_adults) > 0) {
 
+    print('unique adult neuro type factor levels')
+    print(levels(demo_df_adults$neuro_post))
+
     print('print colnames(comorb_adults$index_scores_elix) to make sure these are characters, not numbers')
     print(colnames(comorb_adults$index_scores_elix ))
 
+    pca_cols <- (paste0(".fittedPC", 1:10))
+
     scores_unique_adults <- comorb_adults$index_scores_elix %>%
       right_join0(., demo_df_adults, by = "patient_num") %>%
-      left_join(comorb_adults$pca_covariates, by = "patient_num")
+      left_join(comorb_adults$pca_covariates, by = "patient_num") %>%
+      mutate_at(pca_cols, replace_na, '0')
 
     print('print colnames(scores_unique_adults) to make sure comorbidities are characters, not numbers')
     print(colnames(scores_unique_adults))
@@ -595,14 +601,20 @@ run_hosps <- function(both_pts,
 
   if(nrow(demo_df_pediatrics) > 0) {
 
+    print('unique pediatric neuro type factor levels')
+    print(levels(demo_df_pediatrics$neuro_post))
+
     print('calculate unique pediatric comorbid scores')
 
     print('print colnames(comorb_pediatrics$index_scores_elix) to make sure these are characters, not numbers')
     print(colnames(comorb_pediatrics$index_scores_elix ))
 
+    pca_cols <- (paste0(".fittedPC", 1:10))
+
   scores_unique_pediatrics <- comorb_pediatrics$index_scores_elix %>%
     right_join0(., demo_df_pediatrics, by = "patient_num") %>%
-    left_join(comorb_pediatrics$pca_covariates, by = "patient_num")
+    left_join(comorb_pediatrics$pca_covariates, by = "patient_num") %>%
+    mutate_at(pca_cols, replace_na, '0')
 
   print('print colnames(scores_unique_pediatrics) to make sure comorbidities are characters, not numbers')
   print(colnames(scores_unique_pediatrics))
@@ -936,6 +948,11 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
 
   index_scores_elix <- comorb_list$index_scores_elix
 
+  # do patients have comorbidities?
+  if(dim(index_scores_elix)[1] == 0) {
+    print('patients have no comorbidities')
+  }
+
   # ensure data is formatted correctly
   index_scores_elix$patient_num <- as.character(index_scores_elix$patient_num)
 
@@ -967,6 +984,10 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
 
   print('save mapped_codes_table')
   mapped_codes_table <- comorb_list$mapped_codes_table
+
+  # if(is.na(mapped_codes_table)) {
+  #   print('mapped_codes_table is NA - no patients have comorbidities in this cohort')
+  # }
 
   print('construct elixhauser comorbidity matrix')
   elix_mat <- cor(select(
@@ -1019,10 +1040,36 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
   print('save deviance and pca covariates')
   deviance_expl <- lpca_fit$prop_deviance_expl
 
-  pca_covariates <- lpca_fit$PCs %>%
+  print('check if we can compute 10 PCs')
+  if(length(colnames(data.frame(lpca_fit$PCs))) < 10) {
+
+    print('cant compute pcs in the analysis...creating empty dataframe instead and setting all pcs to 0')
+    num_pcs = length(colnames(data.frame(lpca_fit$PCs)))
+    extra_cols <- 10-num_pcs
+
+    # create initial pca dataframe
+    pca_covariates <- lpca_fit$PCs %>%
+      data.frame() %>%
+      `colnames<-`(paste0(".fittedPC", 1:num_pcs)) %>%
+      tibble::rownames_to_column("patient_num")
+
+      extra_pca_cols <- paste0(".fittedPC", seq(from = num_pcs+1, to = 10))
+
+      extra_pca_cols_df <- data.frame(matrix(0,    # Create dataframe of 0s
+                                             nrow = nrow(pca_covariates),
+                                             ncol = length(extra_pca_cols)))
+      colnames(extra_pca_cols_df) <- extra_pca_cols
+
+      pca_covariates <- pca_covariates %>%
+        cbind(., extra_pca_cols_df)
+
+  } else {
+    print('formatting top 10 pcs')
+    pca_covariates <- lpca_fit$PCs %>%
     data.frame() %>%
     `colnames<-`(paste0(".fittedPC", 1:10)) %>%
     tibble::rownames_to_column("patient_num")
+  }
 
   print('save individual covariates')
   ind_covariates <- index_scores_elix %>%
@@ -1050,12 +1097,16 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
 
   ## obfuscate comorbidity table
   print('construct mapped comorbidity codes table')
-  mapped_codes_table_obfus <- blur_it(mapped_codes_table, vars = 'n_patients', blur_abs, mask_thres)
-  #mapped_codes_table_obfus <- mask_it(mapped_codes_table_obfus, var = 'n_patients', blur_abs, mask_thres)
 
-  # remove categories with 0 patients
-  mapped_codes_table_obfus <- mapped_codes_table_obfus %>%
-    filter(!n_patients == 0)
+  if(!exists('mapped_codes_table_obfus')) {
+    mapped_codes_table_obfus <- data.frame()
+  } else {
+    mapped_codes_table_obfus <- blur_it(mapped_codes_table, vars = 'n_patients', blur_abs, mask_thres)
+
+    # remove categories with 0 patients
+    mapped_codes_table_obfus <- mapped_codes_table_obfus %>%
+      filter(!n_patients == 0)
+  }
 
   # remove age_group from index_scores_elix
   index_scores_elix <- index_scores_elix %>%
@@ -1074,6 +1125,7 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
                          index_scores_elix = index_scores_elix)
 
 }
+
 # return icd codes for patients during their first hospitalization as determined via 'first_out' or who are still 'in_hospital' when the data was pulled
 temporal_neuro <- function(comp_readmissions, obs_raw, neuro_icds, readmissions, in_hospital) {
 
