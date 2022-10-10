@@ -523,12 +523,12 @@ run_hosps <- function(both_pts,
     print('print colnames(comorb_adults$index_scores_elix) to make sure these are characters, not numbers')
     print(colnames(comorb_adults$index_scores_elix ))
 
-    pca_cols <- (paste0(".fittedPC", 1:10))
+    pca_cols <- paste0(".fittedPC", 1:10)
 
     scores_unique_adults <- comorb_adults$index_scores_elix %>%
       right_join0(., demo_df_adults, by = "patient_num") %>%
       left_join(comorb_adults$pca_covariates, by = "patient_num") %>%
-      mutate_at(pca_cols, replace_na, '0')
+      mutate_at(pca_cols, replace_na, 0)
 
     print('print colnames(scores_unique_adults) to make sure comorbidities are characters, not numbers')
     print(colnames(scores_unique_adults))
@@ -609,12 +609,12 @@ run_hosps <- function(both_pts,
     print('print colnames(comorb_pediatrics$index_scores_elix) to make sure these are characters, not numbers')
     print(colnames(comorb_pediatrics$index_scores_elix ))
 
-    pca_cols <- (paste0(".fittedPC", 1:10))
+    pca_cols <- paste0(".fittedPC", 1:10)
 
   scores_unique_pediatrics <- comorb_pediatrics$index_scores_elix %>%
     right_join0(., demo_df_pediatrics, by = "patient_num") %>%
     left_join(comorb_pediatrics$pca_covariates, by = "patient_num") %>%
-    mutate_at(pca_cols, replace_na, '0')
+    mutate_at(pca_cols, replace_na, 0)
 
   print('print colnames(scores_unique_pediatrics) to make sure comorbidities are characters, not numbers')
   print(colnames(scores_unique_pediatrics))
