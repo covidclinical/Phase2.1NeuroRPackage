@@ -1098,7 +1098,7 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
   ## obfuscate comorbidity table
   print('construct mapped comorbidity codes table')
 
-  if(!exists('mapped_codes_table')) {
+  if(is.na(mapped_codes_table)) {
     mapped_codes_table_obfus <- data.frame()
   } else {
     mapped_codes_table_obfus <- blur_it(mapped_codes_table, vars = 'n_patients', blur_abs, mask_thres)
