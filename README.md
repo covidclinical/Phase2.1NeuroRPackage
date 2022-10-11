@@ -60,7 +60,7 @@ runAnalysis()
 Finally, please submit the results to
 [Phase2.1NeuroRSummariesPublic](https://github.com/covidclinical/Phase2.1NeuroRSummariesPublic):
 
--   Share with @trang your GitHub handle via direct message or the
+-   Share with @meghutch your GitHub handle via direct message or the
     \#neuro Slack channel so you can be added as contributor to the
     repository.
 -   Note that you would need to use a token to access **private** repos,
