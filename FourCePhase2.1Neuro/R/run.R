@@ -926,15 +926,28 @@ get_elix_mat <- function(obs_raw, icd_version, t1 = -365, t2 = -15, map_type = "
     map_type = map_type
   )
 
+  print('length of initial comorb_elix list (should be 2)')
+  print(length(comorb_elix))
+
+
+  print('length of comorb_elix$index_scores (number of columns to check if this list generated)')
+  print(length(comorb_elix$index_scores))
+
   index_scores_elix <- comorb_elix$index_scores %>%
     rename("elixhauser_score" = van_walraven_score)
   # van Walraven is a modification of Elixhauser comorbidity measure
   # doi.org/10.1097/MLR.0b013e31819432e5
 
+  print('check length of index_scores_elix after renaming column')
+  print(length(index_scores_elix))
+
   mapped_codes_table <- comorb_elix$mapped_codes_table
 
   comorb_list <- list(index_scores_elix = index_scores_elix,
                       mapped_codes_table = mapped_codes_table)
+
+  print('print final length of comorb list, should still be 2')
+  print(length(comorb_list))
 
   return(comorb_list)
 }
@@ -948,9 +961,14 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
 
   index_scores_elix <- comorb_list$index_scores_elix
 
+  print('print length of index_scores_elix (should be 32')
+  print(length(index_scores_elix))
+
   # do patients have comorbidities?
   if(dim(index_scores_elix)[1] == 0) {
     print('patients have no comorbidities')
+  } else {
+    print('patients have comorbidities')
   }
 
   # ensure data is formatted correctly
@@ -1097,6 +1115,7 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
 
   ## obfuscate comorbidity table
   print('construct mapped comorbidity codes table')
+
 
   if(is.na(mapped_codes_table)) {
     mapped_codes_table_obfus <- data.frame()
