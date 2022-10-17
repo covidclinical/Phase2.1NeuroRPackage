@@ -1053,23 +1053,26 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
   ## logicstic pca
   # k = 10 principal components, m is solved for
   print('fit LPCA model')
-  lpca_fit <- logisticPCA::logisticPCA(elix_pca, k = min(nrow(elix_pca), 10), m = 0)
+  # if comorbidity information is present, we will compute LPCAs
+  if(!is.na(elix_pca[1])) {
 
-  print('save deviance and pca covariates')
-  deviance_expl <- lpca_fit$prop_deviance_expl
+    lpca_fit <- logisticPCA::logisticPCA(elix_pca, k = min(nrow(elix_pca), 10), m = 0)
 
-  print('check if we can compute 10 PCs')
-  if(length(colnames(data.frame(lpca_fit$PCs))) < 10) {
+    print('save deviance and pca covariates')
+    deviance_expl <- lpca_fit$prop_deviance_expl
 
-    print('cant compute pcs in the analysis...creating empty dataframe instead and setting all pcs to 0')
-    num_pcs = length(colnames(data.frame(lpca_fit$PCs)))
-    extra_cols <- 10-num_pcs
+    print('check if we can compute 10 PCs')
+    if(length(colnames(data.frame(lpca_fit$PCs))) < 10) {
 
-    # create initial pca dataframe
-    pca_covariates <- lpca_fit$PCs %>%
-      data.frame() %>%
-      `colnames<-`(paste0(".fittedPC", 1:num_pcs)) %>%
-      tibble::rownames_to_column("patient_num")
+      print('cant compute pcs in the analysis...creating empty dataframe instead and setting all pcs to 0')
+      num_pcs = length(colnames(data.frame(lpca_fit$PCs)))
+      extra_cols <- 10-num_pcs
+
+      # create initial pca dataframe
+      pca_covariates <- lpca_fit$PCs %>%
+        data.frame() %>%
+        `colnames<-`(paste0(".fittedPC", 1:num_pcs)) %>%
+        tibble::rownames_to_column("patient_num")
 
       extra_pca_cols <- paste0(".fittedPC", seq(from = num_pcs+1, to = 10))
 
@@ -1081,13 +1084,27 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
       pca_covariates <- pca_covariates %>%
         cbind(., extra_pca_cols_df)
 
-  } else {
-    print('formatting top 10 pcs')
-    pca_covariates <- lpca_fit$PCs %>%
-    data.frame() %>%
-    `colnames<-`(paste0(".fittedPC", 1:10)) %>%
-    tibble::rownames_to_column("patient_num")
+    } else {
+      print('formatting top 10 pcs')
+      pca_covariates <- lpca_fit$PCs %>%
+        data.frame() %>%
+        `colnames<-`(paste0(".fittedPC", 1:10)) %>%
+        tibble::rownames_to_column("patient_num")
+    }
   }
+
+    if(is.na(elix_pca[1])) {
+    print('no comorbidities present, creating empty dataframe')
+    pca_covariates <- #lpca_fit$PCs %>%
+      data.frame(matrix(0,
+                        nrow = 0,
+                        ncol = 10)) %>%
+      `colnames<-`(paste0(".fittedPC", 1:10)) %>%
+      tibble::rownames_to_column("patient_num")
+
+    deviance_expl <- NULL
+
+    }
 
   print('save individual covariates')
   ind_covariates <- index_scores_elix %>%
