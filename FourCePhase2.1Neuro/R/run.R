@@ -103,8 +103,8 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
     df$time=apply(cbind(df$time_to_first_discharge,df$time_to_death,df$c),1,min)
     # if time_to_first_discharge == time_to_first_death, make time_to_first_discharge == NA
     df <- df %>% mutate(time_to_first_discharge = ifelse(time_to_first_discharge == time_to_death,
-                                                          time_to_first_discharge == NA,
-                                                          time_to_first_discharge))
+                                                         time_to_first_discharge == NA,
+                                                         time_to_first_discharge))
     # which.min will identify the column integer with the minimum time
     # (e.g. if time_to_first_discharge is the smallest, delta = 1)
     df$delta=apply(cbind(df$time_to_first_discharge,df$time_to_death,df$c),1,which.min)
@@ -140,7 +140,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
         }
 
         survtable = survminer::ggrisktable(fit,
-                                break.time.by = survtable_interval)
+                                           break.time.by = survtable_interval)
 
         # mask and blur for obfuscation
         message("obfuscating KM survtable")
@@ -226,50 +226,50 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
 
         # save survival model results to a list
         output=list(#'fit'=fit,
-                    'fit_summary' = fit_summary,
-                    #'survout' = survout, # this is not helpful due to all of the patient level probs that were averaged
-                    # also survout time to event is not taking the strata into account so it's not helpful
-                    'surv_avg' = surv_avg,
-                    'survtable' = survtable_obfs)
+          'fit_summary' = fit_summary,
+          #'survout' = survout, # this is not helpful due to all of the patient level probs that were averaged
+          # also survout time to event is not taking the strata into account so it's not helpful
+          'surv_avg' = surv_avg,
+          'survtable' = survtable_obfs)
 
-          # remove patient level data
-          if (!is.null(output)) {
-            # output$fit$linear.predictors <- NULL
-            # output$fit$residuals <- NULL
-            # output$fit$n <- NULL
-            # output$fit$y <- NULL
-            # output$fit$nevent <- NULL
-            # output$fit$terms <- NULL
-            # output$fit$concordance <- NULL
-            # output$fit$call <- NULL
-            # output$fit$term <- NULL
-            # output$fit$formula <- NULL
+        # remove patient level data
+        if (!is.null(output)) {
+          # output$fit$linear.predictors <- NULL
+          # output$fit$residuals <- NULL
+          # output$fit$n <- NULL
+          # output$fit$y <- NULL
+          # output$fit$nevent <- NULL
+          # output$fit$terms <- NULL
+          # output$fit$concordance <- NULL
+          # output$fit$call <- NULL
+          # output$fit$term <- NULL
+          # output$fit$formula <- NULL
 
-            output$fit_summary$fail <- NULL
-            output$fit_summary$na.action <- NULL
-            output$fit_summary$n <- NULL
-            output$fit_summary$nevent <- NULL
-            output$fit_summary$call <- NULL
+          output$fit_summary$fail <- NULL
+          output$fit_summary$na.action <- NULL
+          output$fit_summary$n <- NULL
+          output$fit_summary$nevent <- NULL
+          output$fit_summary$call <- NULL
 
-            # output$survout$none$n <- NULL
-            # output$survout$none$n.risk <- NULL
-            # output$survout$none$n.event <- NULL
-            # output$survout$none$n.censor <- NULL
-            # output$survout$none$call <- NULL
-            #
-            # output$survout$cns$n <- NULL
-            # output$survout$cns$n.risk <- NULL
-            # output$survout$cns$n.event <- NULL
-            # output$survout$cns$n.censor <- NULL
-            # output$survout$cns$call <- NULL
-            #
-            # output$survout$pns$n <- NULL
-            # output$survout$pns$n.risk <- NULL
-            # output$survout$pns$n.event <- NULL
-            # output$survout$pns$n.censor <- NULL
-            # output$survout$pns$call <- NULL
+          # output$survout$none$n <- NULL
+          # output$survout$none$n.risk <- NULL
+          # output$survout$none$n.event <- NULL
+          # output$survout$none$n.censor <- NULL
+          # output$survout$none$call <- NULL
+          #
+          # output$survout$cns$n <- NULL
+          # output$survout$cns$n.risk <- NULL
+          # output$survout$cns$n.event <- NULL
+          # output$survout$cns$n.censor <- NULL
+          # output$survout$cns$call <- NULL
+          #
+          # output$survout$pns$n <- NULL
+          # output$survout$pns$n.risk <- NULL
+          # output$survout$pns$n.event <- NULL
+          # output$survout$pns$n.censor <- NULL
+          # output$survout$pns$call <- NULL
 
-          }
+        }
       },
       error = function(cond) {
         message(paste("Error when evaluating", depend_var))
@@ -277,10 +277,10 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
         message(cond)
         message('Skipping for now...')
         return(NULL)
-        }
+      }
     )
 
-      }
+  }
 
   ## severe
   if (depend_var=='severe'){
@@ -298,7 +298,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
       independ_vars.new <- paste(ind_vars.new, collapse = ' + ')
       print('create covariate model')
       covariate <- model.matrix(as.formula(paste("delta", '~',
-                                              independ_vars.new)),data=df)[,-1] #[-1] removes intercept
+                                                 independ_vars.new)),data=df)[,-1] #[-1] removes intercept
       data=data.frame( cbind('delta'=df$delta,'delta.pns'=df$delta.pns,
                              'delta.pns.both'=df$delta*df$delta.pns,
                              'delta.cns'=df$delta.cns,
@@ -315,8 +315,8 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
 
       message("blurring severe_table counts")
       severe_table_obfs <- blur_it(severe_table,
-                              vars = c("not_severe", "severe", "pns", "severe_pns",
-                                       "cns", "severe_cns", "not_neuro"), blur_abs, mask_thres)
+                                   vars = c("not_severe", "severe", "pns", "severe_pns",
+                                            "cns", "severe_cns", "not_neuro"), blur_abs, mask_thres)
 
       # fit/predict
       print('fit models')
@@ -389,7 +389,7 @@ run_coxregression <-function(df, depend_var, ind_vars, tcut=60, blur_abs, mask_t
       message(cond)
       message('Skipping for now...')
       return(NULL)
-      }
+    }
     )
   }
   output
@@ -412,28 +412,28 @@ resam=function(vv,data,covariate){
   data=data[vv,]
 
   fit1=glm(as.formula(paste('delta~',
-                           paste(colnames(covariate),collapse='+'))),
-          family='binomial',data=data)
+                            paste(colnames(covariate),collapse='+'))),
+           family='binomial',data=data)
   pred=predict(fit1,newdata=data,type = 'response')
 
   fit2=glm(as.formula(paste('delta.pns~',
-                           paste(colnames(covariate),collapse='+'))),
-          family='binomial',data=data)
+                            paste(colnames(covariate),collapse='+'))),
+           family='binomial',data=data)
   pred.pns=predict(fit2,newdata=data,type = 'response')
 
   fit3=glm(as.formula(paste('delta.pns.both~',
-                           paste(colnames(covariate),collapse='+'))),
-          family='binomial',data=data)
+                            paste(colnames(covariate),collapse='+'))),
+           family='binomial',data=data)
   pred.pns.both=predict(fit3,newdata=data,type = 'response')
 
   fit4=glm(as.formula(paste('delta.cns~',
-                           paste(colnames(covariate),collapse='+'))),
-          family='binomial',data=data)
+                            paste(colnames(covariate),collapse='+'))),
+           family='binomial',data=data)
   pred.cns=predict(fit4,newdata=data,type = 'response')
 
   fit5=glm(as.formula(paste('delta.cns.both~',
-                           paste(colnames(covariate),collapse='+'))),
-          family='binomial',data=data)
+                            paste(colnames(covariate),collapse='+'))),
+           family='binomial',data=data)
   pred.cns.both=predict(fit5,newdata=data,type = 'response')
 
   pmi.pns=mean(pred.pns.both/(pred*pred.pns))
@@ -458,7 +458,7 @@ run_hosps <- function(both_pts,
                       neuro_icds,
                       comorb_adults,
                       comorb_pediatrics
-                      ) {
+) {
 
 
   ### CNS vs PNS
@@ -487,7 +487,7 @@ run_hosps <- function(both_pts,
   } else {
 
     print('no adult patients')
-    }
+  }
 
   demo_df_pediatrics <- demo_processed %>%
     filter(!patient_num %in% both_pts$patient_num,
@@ -611,70 +611,70 @@ run_hosps <- function(both_pts,
 
     pca_cols <- paste0(".fittedPC", 1:10)
 
-  scores_unique_pediatrics <- comorb_pediatrics$index_scores_elix %>%
-    right_join0(., demo_df_pediatrics, by = "patient_num") %>%
-    left_join(comorb_pediatrics$pca_covariates, by = "patient_num") %>%
-    mutate_at(pca_cols, replace_na, 0)
+    scores_unique_pediatrics <- comorb_pediatrics$index_scores_elix %>%
+      right_join0(., demo_df_pediatrics, by = "patient_num") %>%
+      left_join(comorb_pediatrics$pca_covariates, by = "patient_num") %>%
+      mutate_at(pca_cols, replace_na, 0)
 
-  print('print colnames(scores_unique_pediatrics) to make sure comorbidities are characters, not numbers')
-  print(colnames(scores_unique_pediatrics))
+    print('print colnames(scores_unique_pediatrics) to make sure comorbidities are characters, not numbers')
+    print(colnames(scores_unique_pediatrics))
 
-  # create demographic tables
-  print('construct pediatric neurologic demographics table')
+    # create demographic tables
+    print('construct pediatric neurologic demographics table')
 
 
-  tableone_pediatrics <- get_tables(
-    neuro_types = neuro_types,
-    demo_df = demo_df_pediatrics,
-    scores_unique = scores_unique_pediatrics,
-    comorb_names_elix = comorb_names_elix,
-    blur_abs = blur_abs,
-    mask_thres = mask_thres,
-    group_var = 'neuro_post',
-    vars_to_obfs = c('sex',
-                     'age_group',
-                     'race',
-                     'Severity',
-                     'Survival',
-                     'readmitted',
-                     'covid_discharged')
-  ) %>%
-    lapply(function(x) mutate(x, site = currSiteId))
+    tableone_pediatrics <- get_tables(
+      neuro_types = neuro_types,
+      demo_df = demo_df_pediatrics,
+      scores_unique = scores_unique_pediatrics,
+      comorb_names_elix = comorb_names_elix,
+      blur_abs = blur_abs,
+      mask_thres = mask_thres,
+      group_var = 'neuro_post',
+      vars_to_obfs = c('sex',
+                       'age_group',
+                       'race',
+                       'Severity',
+                       'Survival',
+                       'readmitted',
+                       'covid_discharged')
+    ) %>%
+      lapply(function(x) mutate(x, site = currSiteId))
 
-  # pivot comorbidity tables
-  print('pivot pediatric comorbidity table')
+    # pivot comorbidity tables
+    print('pivot pediatric comorbidity table')
 
-  comorb_pediatrics_pivot <- comorb_pediatrics$index_scores_elix %>%
-    select(-elixhauser_score) %>%
-    pivot_longer(!patient_num, names_to = "Comorbidity") %>%
-    filter(value == 1) %>%
-    left_join(., comorb_pediatrics$index_scores_elix %>%
-                select(patient_num, elixhauser_score),
-              by = 'patient_num') %>%
-    select(-value)
+    comorb_pediatrics_pivot <- comorb_pediatrics$index_scores_elix %>%
+      select(-elixhauser_score) %>%
+      pivot_longer(!patient_num, names_to = "Comorbidity") %>%
+      filter(value == 1) %>%
+      left_join(., comorb_pediatrics$index_scores_elix %>%
+                  select(patient_num, elixhauser_score),
+                by = 'patient_num') %>%
+      select(-value)
 
-  # return demographic tables
-  print('construct pediatric comorbidity demographcis table')
+    # return demographic tables
+    print('construct pediatric comorbidity demographcis table')
 
-  tableone_comorbidity_pediatrics <- get_tables(
-    neuro_types = c("None", "Peripheral", "Central"),
-    demo_df = left_join(demo_df_pediatrics, comorb_pediatrics_pivot %>%
-                          select(patient_num, Comorbidity), by = 'patient_num') %>%
-      mutate(Comorbidity = if_else(is.na(Comorbidity), "No Comorbidities", Comorbidity)),
-    scores_unique = right_join(comorb_pediatrics_pivot, demo_df_pediatrics, by = "patient_num") %>%
-      mutate(Comorbidity = if_else(is.na(Comorbidity), 'No Comorbidities', Comorbidity)),
-    comorb_names_elix = comorb_names_elix,
-    blur_abs = blur_abs,
-    mask_thres = mask_thres,
-    group_var = 'Comorbidity',
-    vars_to_obfs = c('sex',
-                     'age_group',
-                     'race',
-                     'Severity',
-                     'Survival',
-                     'readmitted',
-                     'covid_discharged')
-  )
+    tableone_comorbidity_pediatrics <- get_tables(
+      neuro_types = c("None", "Peripheral", "Central"),
+      demo_df = left_join(demo_df_pediatrics, comorb_pediatrics_pivot %>%
+                            select(patient_num, Comorbidity), by = 'patient_num') %>%
+        mutate(Comorbidity = if_else(is.na(Comorbidity), "No Comorbidities", Comorbidity)),
+      scores_unique = right_join(comorb_pediatrics_pivot, demo_df_pediatrics, by = "patient_num") %>%
+        mutate(Comorbidity = if_else(is.na(Comorbidity), 'No Comorbidities', Comorbidity)),
+      comorb_names_elix = comorb_names_elix,
+      blur_abs = blur_abs,
+      mask_thres = mask_thres,
+      group_var = 'Comorbidity',
+      vars_to_obfs = c('sex',
+                       'age_group',
+                       'race',
+                       'Severity',
+                       'Survival',
+                       'readmitted',
+                       'covid_discharged')
+    )
 
 
   } else {
@@ -727,7 +727,7 @@ run_hosps <- function(both_pts,
                            'readmitted',
                            'covid_discharged')
         ) %>%
-        lapply(function(x) mutate(x, site = currSiteId))
+          lapply(function(x) mutate(x, site = currSiteId))
       },
       error = function(cond) {
         #message("Original error message:")
@@ -770,7 +770,7 @@ run_hosps <- function(both_pts,
     severe_adm_pediatrics = severe_adm_pediatrics,
     death_adm_pediatrics = death_adm_pediatrics,
     first_adm_pediatrics = first_adm_pediatrics
-    )
+  )
 
   # create demographic tables of non-excluded patients?
   # (actually this is kind of hard since patients could be in multiple analyses)
@@ -802,7 +802,7 @@ run_hosps <- function(both_pts,
       message(cond)
       return(NULL) # return NA in case of error
     }
-      )
+    )
   } else {
     surv_results_adults_lpca_30  = data.frame()
     surv_results_adults_lpca_60 = data.frame()
@@ -815,71 +815,71 @@ run_hosps <- function(both_pts,
     surv_results_adults_ind_90 = data.frame()
   }
   # Pediatric
-    if(nrow(demo_df_pediatrics) > 0) {
-      print('begin pediatric survival analyses')
-      tryCatch({
-        # LPCA
-        surv_results_pediatrics_lpca_30 <- run_coxregressions(analysis = "Pediatrics_30_days_lpca", df = scores_unique_pediatrics, include_race, tcut = 30, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE, elix = "LPCA", survtable_interval = 10)
-        surv_results_pediatrics_lpca_60 <- run_coxregressions(analysis = "Pediatrics_60_days_lpca", df = scores_unique_pediatrics, include_race, tcut = 60, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE, elix = "LPCA", survtable_interval = 20)
-        surv_results_pediatrics_lpca_90 <- run_coxregressions(analysis = "Pediatrics_90_days_lpca", df = scores_unique_pediatrics, include_race, tcut = 90, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE, elix = "LPCA", survtable_interval = 30)
-        # elix score
-        surv_results_pediatrics_score_30 <- run_coxregressions(analysis = "Pediatrics_30_days_score", df = scores_unique_pediatrics, include_race, tcut = 30, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE, elix = "score", survtable_interval = 10)
-        surv_results_pediatrics_score_60 <- run_coxregressions(analysis = "Pediatrics_60_days_score", df = scores_unique_pediatrics, include_race, tcut = 60, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE, elix = "score", survtable_interval = 20)
-        surv_results_pediatrics_score_90 <- run_coxregressions(analysis = "Pediatrics_90_days_score", df = scores_unique_pediatrics, include_race, tcut = 90, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE, elix = "score", survtable_interval = 30)
-        # independent predictors
-        surv_results_pediatrics_ind_30 <- run_coxregressions(analysis = "Pediatrics_30_days_ind", df = scores_unique_pediatrics, include_race, tcut = 30, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE, elix = "ind", survtable_interval = 10)
-        surv_results_pediatrics_ind_60 <- run_coxregressions(analysis = "Pediatrics_60_days_ind", df = scores_unique_pediatrics, include_race, tcut = 60, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE, elix = "ind", survtable_interval = 20)
-        surv_results_pediatrics_ind_90 <- run_coxregressions(analysis = "Pediatrics_90_days_ind", df = scores_unique_pediatrics, include_race, tcut = 90, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE, elix = "ind", survtable_interval = 30)
-        },
-      error = function(cond) {
-        message("Original error message:")
-        message(cond)
-        return(NULL) # return NA in case of error
-      }
-      )
-    } else {
-      surv_results_pediatrics_lpca_30 = data.frame()
-      surv_results_pediatrics_lpca_60 = data.frame()
-      surv_results_pediatrics_lpca_90 = data.frame()
-      surv_results_pediatrics_score_30 = data.frame()
-      surv_results_pediatrics_score_60 = data.frame()
-      surv_results_pediatrics_score_90 = data.frame()
-      surv_results_pediatrics_ind_30 = data.frame()
-      surv_results_pediatrics_ind_60 = data.frame()
-      surv_results_pediatrics_ind_90 = data.frame()
+  if(nrow(demo_df_pediatrics) > 0) {
+    print('begin pediatric survival analyses')
+    tryCatch({
+      # LPCA
+      surv_results_pediatrics_lpca_30 <- run_coxregressions(analysis = "Pediatrics_30_days_lpca", df = scores_unique_pediatrics, include_race, tcut = 30, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE, elix = "LPCA", survtable_interval = 10)
+      surv_results_pediatrics_lpca_60 <- run_coxregressions(analysis = "Pediatrics_60_days_lpca", df = scores_unique_pediatrics, include_race, tcut = 60, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE, elix = "LPCA", survtable_interval = 20)
+      surv_results_pediatrics_lpca_90 <- run_coxregressions(analysis = "Pediatrics_90_days_lpca", df = scores_unique_pediatrics, include_race, tcut = 90, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE, elix = "LPCA", survtable_interval = 30)
+      # elix score
+      surv_results_pediatrics_score_30 <- run_coxregressions(analysis = "Pediatrics_30_days_score", df = scores_unique_pediatrics, include_race, tcut = 30, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE, elix = "score", survtable_interval = 10)
+      surv_results_pediatrics_score_60 <- run_coxregressions(analysis = "Pediatrics_60_days_score", df = scores_unique_pediatrics, include_race, tcut = 60, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE, elix = "score", survtable_interval = 20)
+      surv_results_pediatrics_score_90 <- run_coxregressions(analysis = "Pediatrics_90_days_score", df = scores_unique_pediatrics, include_race, tcut = 90, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE, elix = "score", survtable_interval = 30)
+      # independent predictors
+      surv_results_pediatrics_ind_30 <- run_coxregressions(analysis = "Pediatrics_30_days_ind", df = scores_unique_pediatrics, include_race, tcut = 30, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE, elix = "ind", survtable_interval = 10)
+      surv_results_pediatrics_ind_60 <- run_coxregressions(analysis = "Pediatrics_60_days_ind", df = scores_unique_pediatrics, include_race, tcut = 60, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE, elix = "ind", survtable_interval = 20)
+      surv_results_pediatrics_ind_90 <- run_coxregressions(analysis = "Pediatrics_90_days_ind", df = scores_unique_pediatrics, include_race, tcut = 90, blur_abs = blur_abs, mask_thres = mask_thres, is_pediatric = TRUE, elix = "ind", survtable_interval = 30)
+    },
+    error = function(cond) {
+      message("Original error message:")
+      message(cond)
+      return(NULL) # return NA in case of error
     }
+    )
+  } else {
+    surv_results_pediatrics_lpca_30 = data.frame()
+    surv_results_pediatrics_lpca_60 = data.frame()
+    surv_results_pediatrics_lpca_90 = data.frame()
+    surv_results_pediatrics_score_30 = data.frame()
+    surv_results_pediatrics_score_60 = data.frame()
+    surv_results_pediatrics_score_90 = data.frame()
+    surv_results_pediatrics_ind_30 = data.frame()
+    surv_results_pediatrics_ind_60 = data.frame()
+    surv_results_pediatrics_ind_90 = data.frame()
+  }
 
   ## ----save-results---------------------------------------------------------
   tryCatch({
 
-  tableone_results <- list(tableone_adults = tableone_adults,
-                           tableone_pediatrics = tableone_pediatrics)
+    tableone_results <- list(tableone_adults = tableone_adults,
+                             tableone_pediatrics = tableone_pediatrics)
 
-  tableone_comorbidity_results <- list(tableone_comorbidity_adults = tableone_comorbidity_adults,
-                                       tableone_comorbidity_pediatrics = tableone_comorbidity_pediatrics
-  )
+    tableone_comorbidity_results <- list(tableone_comorbidity_adults = tableone_comorbidity_adults,
+                                         tableone_comorbidity_pediatrics = tableone_comorbidity_pediatrics
+    )
 
-  survival_results <- list(
-    # adult results
-    surv_results_adults_lpca_30  = surv_results_adults_lpca_30,
-    surv_results_adults_lpca_60 = surv_results_adults_lpca_60,
-    surv_results_adults_lpca_90 = surv_results_adults_lpca_90,
-    surv_results_adults_score_30 = surv_results_adults_score_30,
-    surv_results_adults_score_60 = surv_results_adults_score_60,
-    surv_results_adults_score_90 = surv_results_adults_score_90,
-    surv_results_adults_ind_30 = surv_results_adults_ind_30,
-    surv_results_adults_ind_60 = surv_results_adults_ind_60,
-    surv_results_adults_ind_90 = surv_results_adults_ind_90,
-    # pediatric results
-    surv_results_pediatrics_lpca_30 = surv_results_pediatrics_lpca_30,
-    surv_results_pediatrics_lpca_60 = surv_results_pediatrics_lpca_60,
-    surv_results_pediatrics_lpca_90 = surv_results_pediatrics_lpca_90,
-    surv_results_pediatrics_score_30 = surv_results_pediatrics_score_30,
-    surv_results_pediatrics_score_60 = surv_results_pediatrics_score_60,
-    surv_results_pediatrics_score_90 = surv_results_pediatrics_score_90,
-    surv_results_pediatrics_ind_30 = surv_results_pediatrics_ind_30,
-    surv_results_pediatrics_ind_60 = surv_results_pediatrics_ind_60,
-    surv_results_pediatrics_ind_90 = surv_results_pediatrics_ind_90
+    survival_results <- list(
+      # adult results
+      surv_results_adults_lpca_30  = surv_results_adults_lpca_30,
+      surv_results_adults_lpca_60 = surv_results_adults_lpca_60,
+      surv_results_adults_lpca_90 = surv_results_adults_lpca_90,
+      surv_results_adults_score_30 = surv_results_adults_score_30,
+      surv_results_adults_score_60 = surv_results_adults_score_60,
+      surv_results_adults_score_90 = surv_results_adults_score_90,
+      surv_results_adults_ind_30 = surv_results_adults_ind_30,
+      surv_results_adults_ind_60 = surv_results_adults_ind_60,
+      surv_results_adults_ind_90 = surv_results_adults_ind_90,
+      # pediatric results
+      surv_results_pediatrics_lpca_30 = surv_results_pediatrics_lpca_30,
+      surv_results_pediatrics_lpca_60 = surv_results_pediatrics_lpca_60,
+      surv_results_pediatrics_lpca_90 = surv_results_pediatrics_lpca_90,
+      surv_results_pediatrics_score_30 = surv_results_pediatrics_score_30,
+      surv_results_pediatrics_score_60 = surv_results_pediatrics_score_60,
+      surv_results_pediatrics_score_90 = surv_results_pediatrics_score_90,
+      surv_results_pediatrics_ind_30 = surv_results_pediatrics_ind_30,
+      surv_results_pediatrics_ind_60 = surv_results_pediatrics_ind_60,
+      surv_results_pediatrics_ind_90 = surv_results_pediatrics_ind_90
     )
 
   },
@@ -901,7 +901,7 @@ run_hosps <- function(both_pts,
     survival_results = survival_results,
     both_counts = both_counts,
     demo_excluded_on_admission = demo_excluded_on_admission
-    )
+  )
 
   return(results)
 }
@@ -977,8 +977,8 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
   print('add age_group to index_scores_elix')
   index_scores_elix <- index_scores_elix %>%
     right_join0(., demo_raw %>%
-                 filter(patient_num %in% df$patient_num) %>%
-                 select(patient_num, age_group), by = "patient_num")
+                  filter(patient_num %in% df$patient_num) %>%
+                  select(patient_num, age_group), by = "patient_num")
 
   # filter by age
   print('filter index_scores_elix by age')
@@ -1091,9 +1091,17 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
         `colnames<-`(paste0(".fittedPC", 1:10)) %>%
         tibble::rownames_to_column("patient_num")
     }
+
+    ## obfuscate comorbidity table
+    print('construct mapped comorbidity codes table')
+    mapped_codes_table_obfus <- blur_it(mapped_codes_table, vars = 'n_patients', blur_abs, mask_thres)
+
+    # remove categories with 0 patients
+    mapped_codes_table_obfus <- mapped_codes_table_obfus %>%
+      filter(!n_patients == 0)
   }
 
-    if(is.na(elix_pca[1])) {
+  if(is.na(elix_pca[1])) {
     print('no comorbidities present, creating empty dataframe')
     pca_covariates <- #lpca_fit$PCs %>%
       data.frame(matrix(0,
@@ -1104,9 +1112,12 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
 
     deviance_expl <- NULL
 
-    }
+    print('construct empty obfuscated mapped comorbidity codes table')
+    mapped_codes_table_obfus <- data.frame()
+  }
 
   print('save individual covariates')
+
   ind_covariates <- index_scores_elix %>%
     select(-elixhauser_score, -age_group)
 
@@ -1130,19 +1141,19 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
                      'covid_discharged')
   )
 
-  ## obfuscate comorbidity table
-  print('construct mapped comorbidity codes table')
-
-
-  if(is.na(mapped_codes_table)) {
-    mapped_codes_table_obfus <- data.frame()
-  } else {
-    mapped_codes_table_obfus <- blur_it(mapped_codes_table, vars = 'n_patients', blur_abs, mask_thres)
-
-    # remove categories with 0 patients
-    mapped_codes_table_obfus <- mapped_codes_table_obfus %>%
-      filter(!n_patients == 0)
-  }
+  # ## obfuscate comorbidity table
+  # print('construct mapped comorbidity codes table')
+  #
+  # if(is.na(mapped_codes_table)) {
+  #   mapped_codes_table_obfus <- data.frame()
+  # } else {
+  #   print('obfuscating mapped_codes_table if applicable')
+  #   mapped_codes_table_obfus <- blur_it(mapped_codes_table, vars = 'n_patients', blur_abs, mask_thres)
+  #
+  #   # remove categories with 0 patients
+  #   mapped_codes_table_obfus <- mapped_codes_table_obfus %>%
+  #     filter(!n_patients == 0)
+  # }
 
   # remove age_group from index_scores_elix
   index_scores_elix <- index_scores_elix %>%
