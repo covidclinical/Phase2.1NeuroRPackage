@@ -445,7 +445,8 @@ resam=function(vv,data,covariate){
 
 }
 
-run_hosps <- function(both_pts,
+run_hosps <- function(survival_analysis,
+                      both_pts,
                       both_counts,
                       mask_thres,
                       blur_abs,
@@ -567,7 +568,7 @@ run_hosps <- function(both_pts,
       select(-value)
 
     # return demographic tables
-    print('construct adult comorbidity demographcis table')
+    print('construct adult comorbidity demographics table')
 
     tableone_comorbidity_adults <- get_tables(
       neuro_types = c("None", "Peripheral", "Central"),
@@ -589,6 +590,14 @@ run_hosps <- function(both_pts,
                        'covid_discharged')
     )
 
+    comorbidity_neuro_adults <- get_comorb_table(neuro_types = c("None", "Peripheral", "Central"),
+                                          demo_df = demo_df_adults,
+                                          scores_unique = scores_unique_adults,
+                                          comorb_names_elix = comorb_names_elix,
+                                          blur_abs = blur_abs,
+                                          mask_thres = mask_thres,
+                                          group_var = 'neuro_post')
+
 
   } else {
 
@@ -596,6 +605,7 @@ run_hosps <- function(both_pts,
     tableone_adults <- data.frame()
     comorb_adults_pivot <- data.frame()
     tableone_comorbidity_adults <- data.frame()
+    comorbidity_neuro_adults <- data.frame()
   }
 
 
@@ -676,6 +686,14 @@ run_hosps <- function(both_pts,
                        'covid_discharged')
     )
 
+    comorbidity_neuro_pediatrics <- get_comorb_table(neuro_types = c("None", "Peripheral", "Central"),
+                                                 demo_df = demo_df_pediatrics,
+                                                 scores_unique = scores_unique_pediatrics,
+                                                 comorb_names_elix = comorb_names_elix,
+                                                 blur_abs = blur_abs,
+                                                 mask_thres = mask_thres,
+                                                 group_var = 'neuro_post')
+
 
   } else {
 
@@ -683,6 +701,7 @@ run_hosps <- function(both_pts,
     tableone_pediatrics <- data.frame()
     comorb_pediatrics_pivot <- data.frame()
     tableone_comorbidity_pediatrics <- data.frame()
+    comorbidity_neuro_pediatrics <- data.frame()
   }
 
 
@@ -778,6 +797,8 @@ run_hosps <- function(both_pts,
 
 
   ## ---run-survival-models--------------------------------------------------------------------
+  if(survival_analysis == TRUE) {
+
 
   # Adults
   # only run the adult analysis if the site is not a pediatric only hospital
@@ -814,6 +835,7 @@ run_hosps <- function(both_pts,
     surv_results_adults_ind_60 = data.frame()
     surv_results_adults_ind_90 = data.frame()
   }
+
   # Pediatric
   if(nrow(demo_df_pediatrics) > 0) {
     print('begin pediatric survival analyses')
@@ -848,6 +870,29 @@ run_hosps <- function(both_pts,
     surv_results_pediatrics_ind_60 = data.frame()
     surv_results_pediatrics_ind_90 = data.frame()
   }
+  }
+
+
+  if(survival_analysis == FALSE) {
+      surv_results_adults_lpca_30  = data.frame()
+      surv_results_adults_lpca_60 = data.frame()
+      surv_results_adults_lpca_90 = data.frame()
+      surv_results_adults_score_30 = data.frame()
+      surv_results_adults_score_60 = data.frame()
+      surv_results_adults_score_90 = data.frame()
+      surv_results_adults_ind_30 = data.frame()
+      surv_results_adults_ind_60 = data.frame()
+      surv_results_adults_ind_90 = data.frame()
+      surv_results_pediatrics_lpca_30 = data.frame()
+      surv_results_pediatrics_lpca_60 = data.frame()
+      surv_results_pediatrics_lpca_90 = data.frame()
+      surv_results_pediatrics_score_30 = data.frame()
+      surv_results_pediatrics_score_60 = data.frame()
+      surv_results_pediatrics_score_90 = data.frame()
+      surv_results_pediatrics_ind_30 = data.frame()
+      surv_results_pediatrics_ind_60 = data.frame()
+      surv_results_pediatrics_ind_90 = data.frame()
+    }
 
   ## ----save-results---------------------------------------------------------
   tryCatch({
@@ -856,8 +901,9 @@ run_hosps <- function(both_pts,
                              tableone_pediatrics = tableone_pediatrics)
 
     tableone_comorbidity_results <- list(tableone_comorbidity_adults = tableone_comorbidity_adults,
-                                         tableone_comorbidity_pediatrics = tableone_comorbidity_pediatrics
-    )
+                                         tableone_comorbidity_pediatrics = tableone_comorbidity_pediatrics,
+                                         comorbidity_neuro_adults = comorbidity_neuro_adults,
+                                         comorbidity_neuro_pediatrics = comorbidity_neuro_pediatrics)
 
     survival_results <- list(
       # adult results
@@ -1003,11 +1049,11 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
       filter(age_group %in% c("00to02", "06to11", "12to17"))
   }
 
-  print('evaluate whether mapped_codes_table is null')
-  print(is.null(mapped_codes_table))
-
   print('save mapped_codes_table')
   mapped_codes_table <- comorb_list$mapped_codes_table
+
+  print('evaluate whether mapped_codes_table is null')
+  print(is.null(mapped_codes_table))
 
   # if(is.na(mapped_codes_table)) {
   #   print('mapped_codes_table is NA - no patients have comorbidities in this cohort')

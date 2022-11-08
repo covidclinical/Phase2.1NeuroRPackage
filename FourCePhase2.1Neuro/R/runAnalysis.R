@@ -9,7 +9,7 @@
 #' @importFrom forcats fct_recode fct_reorder
 #' @importFrom tidyr pivot_longer pivot_wider replace_na
 #'
-runAnalysis <- function(is_docker = TRUE, test = FALSE, currSiteId=NULL, data_dir= "/4ceData/Input", output_dir=NULL) {
+runAnalysis <- function(is_docker = TRUE, test = FALSE, currSiteId=NULL, data_dir= "/4ceData/Input", output_dir=NULL, survival_analysis = TRUE) {
 
   #sink("analysis_output.txt")
 
@@ -476,6 +476,7 @@ runAnalysis <- function(is_docker = TRUE, test = FALSE, currSiteId=NULL, data_di
     comorbidities = list(comorb_adults = comorb_adults,
                          comorb_pediatrics = comorb_pediatrics),
     first_hosp_results = run_hosps(
+      survival_analysis,
       both_pts,
       both_counts,
       mask_thres,
