@@ -537,7 +537,7 @@ runAnalysis <- function(is_docker = TRUE, test = FALSE, currSiteId=NULL, data_di
   print(paste('The analysis completed in', time.analysis))
 
   # remove unneccessary R objects
-  rm(list = setdiff(ls(), c("CurrSiteId", "results", "is_docker", "output_dir")))
+  rm(list = setdiff(ls(), c("CurrSiteId", "results", "is_docker", "output_dir", "survival_analysis")))
 
   if(survival_analysis==FALSE) {
     site_results <- paste0(CurrSiteId, "_comorb_results")
