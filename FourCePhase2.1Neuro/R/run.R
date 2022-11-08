@@ -944,7 +944,7 @@ get_elix_mat <- function(obs_raw, icd_version, t1 = -365, t2 = -15, map_type = "
   mapped_codes_table <- comorb_elix$mapped_codes_table
 
   print('evaluate whether mapped_codes_table is null')
-  is.null(mapped_codes_table)
+  print(is.null(mapped_codes_table))
 
   comorb_list <- list(index_scores_elix = index_scores_elix,
                       mapped_codes_table = mapped_codes_table)
@@ -1004,7 +1004,7 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
   }
 
   print('evaluate whether mapped_codes_table is null')
-  is.null(mapped_codes_table)
+  print(is.null(mapped_codes_table))
 
   print('save mapped_codes_table')
   mapped_codes_table <- comorb_list$mapped_codes_table
@@ -1109,6 +1109,7 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
     } else {
     mapped_codes_table_obfus = NULL
     }
+  }
 
   if(is.na(elix_pca[1])) {
     print('no comorbidities present, creating empty dataframe')
