@@ -539,9 +539,17 @@ runAnalysis <- function(is_docker = TRUE, test = FALSE, currSiteId=NULL, data_di
   # remove unneccessary R objects
   rm(list = setdiff(ls(), c("CurrSiteId", "results", "is_docker", "output_dir")))
 
-  # append siteId to results file
-  site_results <- paste0(CurrSiteId, "_results")
-  assign(site_results, results)
+  if(survival_analysis==FALSE) {
+    site_results <- paste0(CurrSiteId, "_comorb_results")
+    assign(site_results, results)
+    output_file = '_comorb_results.rda'
+  } else {
+    # append siteId to results file
+    site_results <- paste0(CurrSiteId, "_results")
+    assign(site_results, results)
+    output_file = '_results.rda'
+  }
+
 
   if(is_docker==TRUE) {
     # save results
@@ -549,21 +557,21 @@ runAnalysis <- function(is_docker = TRUE, test = FALSE, currSiteId=NULL, data_di
       list = site_results,
       file = file.path(
         getProjectOutputDirectory(),
-        paste0(CurrSiteId, "_results.rda")
+        paste0(CurrSiteId, output_file)
       )
     )
     save(
       list = site_results,
       file = file.path(
         FourCePhase2.1Data::get4ceRootDirectoryName(),
-        paste0(CurrSiteId, "_results.rda")
+        paste0(CurrSiteId, output_file)
       )
     )
     cat(
       "Result is saved in",
       file.path(
         getProjectOutputDirectory(),
-        paste0(CurrSiteId, "_results.rda")
+        paste0(CurrSiteId, output_file)
       ),
       "\nPlease submit the result file by running submitAnalysis()\n"
     )
@@ -573,7 +581,7 @@ runAnalysis <- function(is_docker = TRUE, test = FALSE, currSiteId=NULL, data_di
       list = site_results,
       file = file.path(
         output_dir,
-        paste0(CurrSiteId, "_results.rda")
+        paste0(CurrSiteId, output_file)
       )
     )
     cat('analysis complete')
