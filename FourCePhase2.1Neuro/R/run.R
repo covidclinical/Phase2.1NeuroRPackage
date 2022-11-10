@@ -1055,6 +1055,9 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
   print('evaluate whether mapped_codes_table is null')
   print(is.null(mapped_codes_table))
 
+  print('evaluate whether mapped_codes_table is NA')
+  print(is.na(mapped_codes_table))
+
   print('print numberof unique comorbidities in the mapped_codes_table')
   print(nrow(mapped_codes_table))
 
