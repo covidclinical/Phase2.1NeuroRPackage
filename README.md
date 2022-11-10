@@ -1,7 +1,7 @@
 Analysis of COVID-19 patients with Neurological Conditions
 ================
 
-Here we provide the steps for running the Phase2.1 Neuro R package. This package specifically requres [Phase2.1 data](https://github.com/covidclinical/Phase2.1SqlDataExtraction) and memebership within the [4CE Consortium](https://covidclinical.net/). 
+Here we provide the steps for running the Phase2.1 Neuro R package. This package specifically requires [Phase2.1 data](https://github.com/covidclinical/Phase2.1SqlDataExtraction) and memebership within the [4CE Consortium](https://covidclinical.net/). 
 
 4CE analysts at each participating healthcare system can follow the below steps to locally run the Phase2.1 Neuro R Package on their healthcare system's data.
 
