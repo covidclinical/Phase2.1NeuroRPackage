@@ -1155,7 +1155,7 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
     }
 
     if(nrow(mapped_codes_table)>0) {
-      mapped_codes_table_obfus <- blur_it(mapped_codes_table, vars='n_patients', blur_abs=3, mask_thres=3)
+      mapped_codes_table_obfus <- blur_it(mapped_codes_table, vars='n_patients', blur_abs, mask_thres)
 
       # remove categories with 0 patients
       mapped_codes_table_obfus <- mapped_codes_table_obfus %>%
