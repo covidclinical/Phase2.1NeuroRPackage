@@ -987,13 +987,13 @@ get_elix_mat <- function(obs_raw, icd_version, t1 = -365, t2 = -15, map_type = "
   print('check length of index_scores_elix after renaming column')
   print(length(index_scores_elix))
 
-  mapped_codes_table <- comorb_elix$mapped_codes_table
+  #mapped_codes_table <- comorb_elix$mapped_codes_table
 
-  print('evaluate whether mapped_codes_table is null')
-  print(is.null(mapped_codes_table))
+  #print('evaluate whether mapped_codes_table is null')
+  #print(is.null(mapped_codes_table))
 
-  comorb_list <- list(index_scores_elix = index_scores_elix,
-                      mapped_codes_table = mapped_codes_table)
+  comorb_list <- list(index_scores_elix = index_scores_elix)
+  #                     mapped_codes_table = mapped_codes_table)
 
   print('print final length of comorb list, should still be 2')
   print(length(comorb_list))
@@ -1049,17 +1049,17 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
       filter(age_group %in% c("00to02", "06to11", "12to17"))
   }
 
-  print('save mapped_codes_table')
-  mapped_codes_table <- comorb_list$mapped_codes_table
-
-  print('evaluate whether mapped_codes_table is null')
-  print(is.null(mapped_codes_table))
-
-  print('evaluate whether mapped_codes_table is NA')
-  print(is.na(mapped_codes_table))
-
-  print('print numberof unique comorbidities in the mapped_codes_table')
-  print(nrow(mapped_codes_table))
+  # print('save mapped_codes_table')
+  # mapped_codes_table <- comorb_list$mapped_codes_table
+  #
+  # print('evaluate whether mapped_codes_table is null')
+  # print(is.null(mapped_codes_table))
+  #
+  # print('evaluate whether mapped_codes_table is NA')
+  # print(is.na(mapped_codes_table))
+  #
+  # print('print numberof unique comorbidities in the mapped_codes_table')
+  # print(nrow(mapped_codes_table))
 
   # if(is.na(mapped_codes_table)) {
   #   print('mapped_codes_table is NA - no patients have comorbidities in this cohort')
@@ -1150,34 +1150,34 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
         tibble::rownames_to_column("patient_num")
     }
 
-    ## obfuscate comorbidity table
-    print('construct mapped comorbidity codes table')
-
-    if(!exists('mapped_codes_table')) {
-      mapped_codes_table <- data.frame("n_patients" = NA)
-    }
-
-    if(is.null(mapped_codes_table)) {
-      mapped_codes_table <- data.frame("n_patients" = NA)
-    }
-
-    if(is.na(mapped_codes_table)) {
-      mapped_codes_table <- data.frame("n_patients" = NA)
-    }
-
-    if(!is.na(mapped_codes_table$n_patients)) {
-      mapped_codes_table_obfus <- blur_it(mapped_codes_table, vars='n_patients', blur_abs, mask_thres)
-
-      # remove categories with 0 patients
-      mapped_codes_table_obfus <- mapped_codes_table_obfus %>%
-        filter(!n_patients == 0)
-
-    }  else {
-      print('mapped_codes_table is empty')
-
-      print('create empty mapped_codes_table_obfus')
-      mapped_codes_table_obfus = NULL
-    }
+    # ## obfuscate comorbidity table
+    # print('construct mapped comorbidity codes table')
+    #
+    # if(!exists('mapped_codes_table')) {
+    #   mapped_codes_table <- data.frame("n_patients" = NA)
+    # }
+    #
+    # if(is.null(mapped_codes_table)) {
+    #   mapped_codes_table <- data.frame("n_patients" = NA)
+    # }
+    #
+    # if(is.na(mapped_codes_table)) {
+    #   mapped_codes_table <- data.frame("n_patients" = NA)
+    # }
+    #
+    # if(!is.na(mapped_codes_table$n_patients)) {
+    #   mapped_codes_table_obfus <- blur_it(mapped_codes_table, vars='n_patients', blur_abs, mask_thres)
+    #
+    #   # remove categories with 0 patients
+    #   mapped_codes_table_obfus <- mapped_codes_table_obfus %>%
+    #     filter(!n_patients == 0)
+    #
+    # }  else {
+    #   print('mapped_codes_table is empty')
+    #
+    #   print('create empty mapped_codes_table_obfus')
+    #   mapped_codes_table_obfus = NULL
+    # }
 
   }
 
@@ -1192,13 +1192,13 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
 
     deviance_expl <- NULL
 
-    print('construct empty obfuscated mapped comorbidity codes table')
-    mapped_codes_table_obfus <- data.frame()
+    # print('construct empty obfuscated mapped comorbidity codes table')
+    # mapped_codes_table_obfus <- data.frame()
   }
 
-  if(!exists('mapped_codes_table_obfus')) {
-    mapped_codes_table_obfus <- data.frame()
-  }
+  # if(!exists('mapped_codes_table_obfus')) {
+  #   mapped_codes_table_obfus <- data.frame()
+  # }
 
   print('save individual covariates')
 
@@ -1250,7 +1250,7 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
                          elix_mat_cns = elix_mat_cns,
                          elix_mat_pns = elix_mat_cns,
                          deviance_expl = deviance_expl,
-                         mapped_codes_table_obfus = mapped_codes_table_obfus,
+                         #mapped_codes_table_obfus = mapped_codes_table_obfus,
                          # to be deleted after analysis
                          pca_covariates = pca_covariates,
                          index_scores_elix = index_scores_elix)

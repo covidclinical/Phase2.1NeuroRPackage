@@ -448,14 +448,14 @@ runAnalysis <- function(is_docker = TRUE, test = FALSE, currSiteId=NULL, data_di
   }
   )
 
-  print('check if !is.null(comorb_adults$mapped_codes_table_obfs) exists (should be TRUE)')
-  print(!is.null(comorb_adults$mapped_codes_table_obfus))
+  #print('check if !is.null(comorb_adults$mapped_codes_table_obfs) exists (should be TRUE)')
+  #print(!is.null(comorb_adults$mapped_codes_table_obfus))
   print('check if !is.null(comorb_adults$index_scores_elix) exists (should be TRUE)')
   print(!is.null(comorb_adults$index_scores_elix))
 
 
-  print('check if !is.null(comorb_pediatrics$mapped_codes_table_obfs) exists (should be TRUE)')
-  print(!is.null(comorb_pediatrics$mapped_codes_table_obfus))
+  #print('check if !is.null(comorb_pediatrics$mapped_codes_table_obfs) exists (should be TRUE)')
+  #print(!is.null(comorb_pediatrics$mapped_codes_table_obfus))
   print('check if !is.null(comorb_pediatrics$index_scores_elix) exists (should be TRUE)')
   print(!is.null(comorb_pediatrics$index_scores_elix))
 
