@@ -51,7 +51,7 @@ run_coxregressions <- function(analysis, df, include_race = TRUE, tcut=60, blur_
   if(is_pediatric == FALSE){
     df <- df %>% filter(age_group %in% c("18to25", "26to49", "50to69", "70to79", "80plus"))
   } else if(is_pediatric == TRUE){
-    df <- df %>% filter(age_group %in% c("00to02", "06to11", "12to17"))
+    df <- df %>% filter(age_group %in% c("00to02", "03to05", "06to11", "12to17"))
   }
 
   ind_vars <- get_ind_vars(df, include_race, elix)
@@ -1036,7 +1036,7 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
       filter(age_group %in% c("18to25", "26to49", "50to69", "70to79", "80plus"))
   } else if (is_pediatric == TRUE) {
     index_scores_elix <- index_scores_elix %>%
-      filter(age_group %in% c("00to02", "06to11", "12to17"))
+      filter(age_group %in% c("00to02", "03to05", "06to11", "12to17"))
   }
 
   # filter by age
@@ -1046,7 +1046,7 @@ process_comorb_data <- function(df, demo_raw, nstay_df, neuro_patients, icd_vers
       filter(age_group %in% c("18to25", "26to49", "50to69", "70to79", "80plus"))
   } else if (is_pediatric == TRUE) {
     nstay_filtered <- nstay_df %>%
-      filter(age_group %in% c("00to02", "06to11", "12to17"))
+      filter(age_group %in% c("00to02", "03to05", "06to11", "12to17"))
   }
 
   # print('save mapped_codes_table')
