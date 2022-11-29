@@ -332,7 +332,7 @@ runAnalysis <- function(is_docker = TRUE, test = FALSE, currSiteId=NULL, data_di
 
   both_ped_pts <- demo_processed_first %>%
     filter(patient_num %in% both_pts$patient_num,
-           age_group %in% c("00to02", "06to11", "12to17")) %>%
+           age_group %in% c("00to02", "03to05", "06to11", "12to17")) %>%
     distinct(patient_num) %>%
     count() %>%
     as.integer() %>%
